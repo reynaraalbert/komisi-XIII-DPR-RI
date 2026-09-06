@@ -107,7 +107,7 @@ export default function AgendaModal({ agenda, onClose }: AgendaModalProps) {
               <FileText className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
               <span>Ringkasan Pokok Pembahasan Rapat</span>
             </h4>
-            <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed bg-slate-50 dark:bg-dpr-navy/50 p-4 rounded-xl border border-slate-200 dark:border-white/5">
+            <p className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed bg-slate-50 dark:bg-dpr-navy/50 p-4 rounded-xl border border-slate-200 dark:border-white/5 text-justify">
               {agenda.summary}
             </p>
           </div>

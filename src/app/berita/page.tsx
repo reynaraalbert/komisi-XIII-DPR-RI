@@ -2,21 +2,23 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { BERITA_LIST, NewsArticle } from "@/lib/data";
+import { NewsArticle } from "@/lib/data";
+import { useCmsContent } from "@/components/CmsProvider";
 import NewsModal from "@/components/NewsModal";
 import { Newspaper, Calendar, Clock, ArrowRight, Search, Filter, Bookmark } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function NewsPage() {
+  const { berita } = useCmsContent();
   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeArticle, setActiveArticle] = useState<NewsArticle | null>(null);
 
   const categories = ["Semua", "Legislasi", "Pengawasan", "Anggaran", "Siaran Pers", "Kunjungan Kerja"];
 
-  const featuredArticle = BERITA_LIST.find((a) => a.isFeatured) || BERITA_LIST[0];
+  const featuredArticle = berita.find((a) => a.isFeatured) || berita[0];
 
-  const filteredNews = BERITA_LIST.filter((article) => {
+  const filteredNews = berita.filter((article) => {
     const matchesCategory = selectedCategory === "Semua" || article.category === selectedCategory;
     const matchesSearch =
       article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -109,16 +111,16 @@ export default function NewsPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200 dark:border-white/5">
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-white/10 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap pb-1 -mx-1 px-1">
           {categories.map((cat) => {
             const isActive = selectedCategory === cat;
             return (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   isActive
-                    ? "bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold shadow-md"
+                    ? "bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold shadow-md scale-105"
                     : "bg-slate-100 dark:bg-dpr-navy text-slate-700 dark:text-slate-300 hover:text-dpr-emerald dark:hover:text-white border border-slate-200 dark:border-white/10"
                 }`}
               >

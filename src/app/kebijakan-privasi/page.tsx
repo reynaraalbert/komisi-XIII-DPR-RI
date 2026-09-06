@@ -107,7 +107,7 @@ export default function KebijakanPrivasiPage() {
       </div>
 
       <div className="glass-panel p-6 rounded-2xl border border-dpr-emerald/30 dark:border-dpr-gold/30 bg-dpr-emerald/5 dark:bg-dpr-gold/5 text-sm text-slate-700 dark:text-slate-300">
-        <strong className="text-dpr-emerald-dark dark:text-dpr-gold">Hubungi Kami:</strong> Untuk pertanyaan atau permintaan terkait data pribadi Anda, silakan hubungi Sekretariat Komisi XIII DPR RI melalui email: <a href="mailto:set_komisi13@dpr.go.id" className="underline font-semibold text-dpr-emerald dark:text-dpr-gold">set_komisi13@dpr.go.id</a> atau melalui halaman <a href="/aspirasi" className="underline font-semibold text-dpr-emerald dark:text-dpr-gold">Aspirasi</a>.
+        <strong className="text-dpr-emerald-dark dark:text-dpr-gold">Hubungi Kami:</strong> Untuk pertanyaan atau permintaan terkait data pribadi Anda, silakan hubungi Sekretariat Komisi XIII DPR RI melalui email: <a href="mailto:golkarinternshipstudent@gmail.com" className="underline font-semibold text-dpr-emerald dark:text-dpr-gold">golkarinternshipstudent@gmail.com</a> atau melalui halaman <a href="/aspirasi" className="underline font-semibold text-dpr-emerald dark:text-dpr-gold">Aspirasi</a>.
       </div>
     </div>
   );

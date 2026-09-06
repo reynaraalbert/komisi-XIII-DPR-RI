@@ -1,13 +1,21 @@
 "use client";
 
 import React from "react";
-import { Users, Award, ChevronRight, MapPin, Mail, GraduationCap, Briefcase, BadgeCheck } from "lucide-react";
+import { Users, Award, ChevronRight, ChevronLeft, MapPin, Mail, GraduationCap, Briefcase, BadgeCheck } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { PIMPINAN_KOMISI, ANGGOTA_KOMISI } from "@/lib/data";
+import { useCmsContent } from "@/components/CmsProvider";
 
 export default function PimpinanPage() {
-  const anggotaSaja = ANGGOTA_KOMISI.filter(m => m.role === "Anggota Komisi");
+  const { pimpinan, anggota, pages } = useCmsContent();
+  const page = pages.find((p) => p.slug === "profil/pimpinan");
+  const headerSub = page?.sections.find((s) => s.title === "Header Halaman Pimpinan")?.subsections[0]?.fields || {};
+
+  const badge = headerSub.badge || "PROFIL KOMISI XIII — PIMPINAN & ANGGOTA";
+  const judul = headerSub.judul || "Pimpinan & Anggota Fraksi Golkar";
+  const deskripsi = headerSub.deskripsi || "Daftar lengkap Pimpinan dan Anggota Komisi XIII DPR RI dari Fraksi Partai Golkar periode 2024–2029 beserta profil dan rekam jejak legislasinya.";
+
+  const anggotaSaja = anggota.filter((m) => m.role === "Anggota Komisi");
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
@@ -16,22 +24,22 @@ export default function PimpinanPage() {
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-dpr-emerald/10 dark:bg-dpr-gold/10 border border-dpr-emerald/30 dark:border-dpr-gold/30 text-dpr-emerald-dark dark:text-dpr-gold text-xs font-bold">
           <Users className="w-4 h-4" />
-          <span>PROFIL KOMISI XIII — PIMPINAN & ANGGOTA</span>
+          <span>{badge}</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white leading-tight">
-          Pimpinan & Anggota <span className="text-dpr-emerald dark:text-dpr-gold">Fraksi Golkar</span>
+          <span className="text-dpr-emerald dark:text-dpr-gold">{judul}</span>
         </h1>
         <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-          Daftar lengkap Pimpinan dan Anggota Komisi XIII DPR RI dari Fraksi Partai Golkar periode 2024–2029 beserta profil dan rekam jejak legislasinya.
+          {deskripsi}
         </p>
       </div>
 
       {/* Statistik */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Total Anggota Golkar", value: ANGGOTA_KOMISI.length, unit: "Orang" },
-          { label: "Pimpinan Komisi", value: PIMPINAN_KOMISI.length, unit: "Jabatan" },
-          { label: "Dapil Terwakili", value: new Set(ANGGOTA_KOMISI.map(m => m.dapil)).size, unit: "Dapil" },
+          { label: "Total Anggota Golkar", value: anggota.length, unit: "Orang" },
+          { label: "Pimpinan Komisi", value: pimpinan.length, unit: "Jabatan" },
+          { label: "Dapil Terwakili", value: new Set(anggota.map(m => m.dapil)).size, unit: "Dapil" },
           { label: "Masa Jabatan", value: "2024", unit: "– 2029" },
         ].map(stat => (
           <div key={stat.label} className="glass-panel p-5 rounded-2xl border border-slate-200 dark:border-white/10 text-center space-y-1">
@@ -58,8 +66,8 @@ export default function PimpinanPage() {
           <div className="flex flex-col sm:flex-row gap-6 items-start">
             <div className="relative shrink-0">
               <img
-                src={PIMPINAN_KOMISI[0].photoUrl}
-                alt={PIMPINAN_KOMISI[0].name}
+                src={pimpinan[0].photoUrl}
+                alt={pimpinan[0].name}
                 className="w-32 h-32 rounded-2xl object-cover border-4 border-dpr-emerald dark:border-dpr-gold shadow-lg"
               />
               <span className="absolute -top-2 -right-2 bg-dpr-emerald dark:bg-dpr-gold text-white dark:text-dpr-navy text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shadow">
@@ -68,31 +76,31 @@ export default function PimpinanPage() {
             </div>
             <div className="flex-1 space-y-4">
               <div>
-                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{PIMPINAN_KOMISI[0].name}</h2>
-                <p className="text-sm text-dpr-emerald-dark dark:text-dpr-gold font-semibold">{PIMPINAN_KOMISI[0].role} — Komisi XIII DPR RI</p>
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{pimpinan[0].name}</h2>
+                <p className="text-sm text-dpr-emerald-dark dark:text-dpr-gold font-semibold">{pimpinan[0].role} — Komisi XIII DPR RI</p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                   <BadgeCheck className="w-3.5 h-3.5 text-dpr-emerald dark:text-dpr-gold shrink-0" />
-                  <span>No. Anggota: <strong className="text-slate-900 dark:text-white">{PIMPINAN_KOMISI[0].nomorAnggota}</strong></span>
+                  <span>No. Anggota: <strong className="text-slate-900 dark:text-white">{pimpinan[0].nomorAnggota}</strong></span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                   <MapPin className="w-3.5 h-3.5 text-dpr-emerald dark:text-dpr-gold shrink-0" />
-                  <span>Dapil: <strong className="text-slate-900 dark:text-white">{PIMPINAN_KOMISI[0].dapil}</strong></span>
+                  <span>Dapil: <strong className="text-slate-900 dark:text-white">{pimpinan[0].dapil}</strong></span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                   <Mail className="w-3.5 h-3.5 text-dpr-emerald dark:text-dpr-gold shrink-0" />
-                  <span>{PIMPINAN_KOMISI[0].email}</span>
+                  <span>{pimpinan[0].email}</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                   <GraduationCap className="w-3.5 h-3.5 text-dpr-emerald dark:text-dpr-gold shrink-0" />
-                  <span>{PIMPINAN_KOMISI[0].pendidikan}</span>
+                  <span>{pimpinan[0].pendidikan}</span>
                 </div>
               </div>
-              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{PIMPINAN_KOMISI[0].bio}</p>
+              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed text-justify">{pimpinan[0].bio}</p>
               <div className="space-y-1">
                 <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Agenda Legislasi yang Dipimpin:</p>
-                {PIMPINAN_KOMISI[0].billsLed.map((bill, bi) => (
+                {pimpinan[0].billsLed.map((bill, bi) => (
                   <div key={bi} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
                     <span className="w-1.5 h-1.5 rounded-full bg-dpr-emerald dark:bg-dpr-gold shrink-0" />
                     {bill}
@@ -105,7 +113,7 @@ export default function PimpinanPage() {
 
         {/* Wakil Ketua */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {PIMPINAN_KOMISI.slice(1).map((wakil, idx) => (
+          {pimpinan.slice(1).map((wakil, idx) => (
             <motion.div
               key={wakil.id}
               initial={{ opacity: 0, y: 20 }}
@@ -182,17 +190,25 @@ export default function PimpinanPage() {
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-200 dark:border-white/10">
-        <Link href="/profil/visi-misi" className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm px-5 py-2.5 rounded-full border border-slate-300 dark:border-white/10 hover:border-dpr-emerald dark:hover:border-dpr-gold transition-all">
-          ← Visi & Misi
-        </Link>
-        <Link href="/anggota" className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm px-5 py-2.5 rounded-full border border-slate-300 dark:border-white/10 hover:border-dpr-emerald dark:hover:border-dpr-gold transition-all">
-          Lihat Halaman Anggota Lengkap <ChevronRight className="w-4 h-4" />
-        </Link>
-        <Link href="/profil/mitra-kerja" className="inline-flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-sm px-5 py-2.5 rounded-full shadow-md hover:opacity-90 transition-all">
-          Daftar Mitra Kerja <ChevronRight className="w-4 h-4" />
-        </Link>
+      {/* Navigation — 2 Buttons side-by-side */}
+      <div className="pt-6 border-t border-slate-200 dark:border-white/10">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
+          <Link
+            href="/profil/visi-misi"
+            className="flex items-center justify-center gap-1 sm:gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm px-2.5 sm:px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-dpr-emerald dark:hover:border-dpr-gold transition-all text-center group min-w-0"
+          >
+            <ChevronLeft className="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform text-dpr-emerald dark:text-dpr-gold" />
+            <span className="truncate">Visi & Misi</span>
+          </Link>
+
+          <Link
+            href="/profil/mitra-kerja"
+            className="flex items-center justify-center gap-1 sm:gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs sm:text-sm px-2.5 sm:px-5 py-3 rounded-2xl shadow-md hover:opacity-90 transition-all text-center group min-w-0"
+          >
+            <span className="truncate">Daftar Mitra Kerja</span>
+            <ChevronRight className="w-4 h-4 shrink-0 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
       </div>
     </div>
   );

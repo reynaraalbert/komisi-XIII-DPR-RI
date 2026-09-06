@@ -3,10 +3,11 @@
 import React, { useState } from "react";
 import {
   Upload, FileText, Link as LinkIcon, Camera, CheckCircle2, ChevronDown,
-  User, BadgeCheck, Building2, Plus, Trash2, Tag, AlignLeft, Hash
+  User, BadgeCheck, Building2, Plus, Trash2, Tag, AlignLeft, Hash, Loader2
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import FileUpload from "@/components/ui/FileUpload";
 
 type TipePenulis = "umum" | "anggota_dpr" | "pegawai_dpr";
 type KategoriBerita = "Legislasi" | "Pengawasan" | "Anggaran" | "Siaran Pers" | "Kunjungan Kerja" | "Opini" | "Lainnya";
@@ -16,8 +17,8 @@ interface Sumber { judul: string; url: string; }
 export default function TulisBeritaPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Biodata
   const [tipePenulis, setTipePenulis] = useState<TipePenulis>("umum");
   const [namaLengkap, setNamaLengkap] = useState("");
   const [email, setEmail] = useState("");
@@ -31,7 +32,6 @@ export default function TulisBeritaPage() {
   const [pekerjaan, setPekerjaan] = useState("");
   const [instansi, setInstansi] = useState("");
 
-  // Artikel
   const [judulBerita, setJudulBerita] = useState("");
   const [kategori, setKategori] = useState<KategoriBerita>("Legislasi");
   const [tanggal, setTanggal] = useState("");
@@ -39,6 +39,8 @@ export default function TulisBeritaPage() {
   const [isiBerita, setIsiBerita] = useState("");
   const [tags, setTags] = useState("");
   const [sumber, setSumber] = useState<Sumber[]>([{ judul: "", url: "" }]);
+  const [imageUrl, setImageUrl] = useState("");
+  const [documentUrl, setDocumentUrl] = useState("");
   const [hasLampiran, setHasLampiran] = useState(false);
 
   const addSumber = () => setSumber(prev => [...prev, { judul: "", url: "" }]);
@@ -47,10 +49,54 @@ export default function TulisBeritaPage() {
     setSumber(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: value } : s));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
-    setTimeout(() => { window.location.href = "/berita"; }, 3000);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          biodata: {
+            tipePenulis,
+            nama: namaLengkap,
+            email,
+            nomorAnggota,
+            fraksi,
+            dapil,
+            masaJabatan,
+            nip,
+            unitKerja,
+            jabatan,
+            pekerjaan,
+            instansi,
+          },
+          artikel: {
+            judul: judulBerita,
+            kategori,
+            tanggal,
+            ringkasan,
+            isiBerita,
+            tags,
+            sumber: sumber.filter(s => s.judul || s.url),
+          },
+          attachments: {
+            imageUrl: imageUrl || undefined,
+            documentUrl: hasLampiran ? documentUrl || undefined : undefined,
+          },
+        }),
+      });
+      if (res.ok) {
+        setIsSubmitted(true);
+        setTimeout(() => { window.location.href = "/berita"; }, 3000);
+      } else {
+        alert("Gagal mengirim berita. Silakan coba lagi.");
+      }
+    } catch {
+      alert("Gagal mengirim berita. Periksa koneksi internet Anda.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const inputClass = "w-full bg-slate-50 dark:bg-dpr-navy-card text-sm text-slate-900 dark:text-white placeholder-slate-400 px-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 focus:border-dpr-emerald dark:focus:border-dpr-gold focus:outline-none transition-colors";
@@ -74,7 +120,6 @@ export default function TulisBeritaPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
 
-      {/* Header */}
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-dpr-emerald/10 dark:bg-dpr-gold/10 border border-dpr-emerald/30 dark:border-dpr-gold/30 text-dpr-emerald-dark dark:text-dpr-gold text-xs font-bold">
           <FileText className="w-4 h-4" />
@@ -86,7 +131,6 @@ export default function TulisBeritaPage() {
         <p className="text-slate-600 dark:text-slate-400 text-sm">Bagikan informasi, opini, atau laporan terkini seputar kegiatan Komisi XIII DPR RI Fraksi Partai Golkar.</p>
       </div>
 
-      {/* Step Indicator */}
       <div className="flex items-center gap-0 max-w-md mx-auto">
         {[{ n: 1, label: "Biodata" }, { n: 2, label: "Konten" }, { n: 3, label: "Lampiran" }].map((s, i) => (
           <React.Fragment key={s.n}>
@@ -104,7 +148,6 @@ export default function TulisBeritaPage() {
 
       <form onSubmit={handleSubmit}>
 
-        {/* STEP 1: BIODATA */}
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-6">
@@ -114,7 +157,6 @@ export default function TulisBeritaPage() {
                   Data Diri Penulis
                 </h2>
 
-                {/* Tipe Penulis */}
                 <div className="space-y-2">
                   <label className={labelClass}>Jenis Penulis <span className="text-red-500">*</span></label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -139,7 +181,6 @@ export default function TulisBeritaPage() {
                   </div>
                 </div>
 
-                {/* Common Fields */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Nama Lengkap <span className="text-red-500">*</span></label>
@@ -151,7 +192,6 @@ export default function TulisBeritaPage() {
                   </div>
                 </div>
 
-                {/* Anggota DPR Fields */}
                 {tipePenulis === "anggota_dpr" && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-4 p-5 bg-dpr-emerald/5 dark:bg-dpr-gold/5 rounded-2xl border border-dpr-emerald/20 dark:border-dpr-gold/20">
                     <h3 className="text-sm font-bold text-dpr-emerald-dark dark:text-dpr-gold flex items-center gap-2">
@@ -181,7 +221,6 @@ export default function TulisBeritaPage() {
                   </motion.div>
                 )}
 
-                {/* Pegawai DPR Fields */}
                 {tipePenulis === "pegawai_dpr" && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-4 p-5 bg-slate-100 dark:bg-dpr-navy-card rounded-2xl border border-slate-200 dark:border-white/10">
                     <h3 className="text-sm font-bold text-slate-700 dark:text-white flex items-center gap-2">
@@ -189,7 +228,7 @@ export default function TulisBeritaPage() {
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className={labelClass}>NIP (Nomor Induk Pegawai) <span className="text-red-500">*</span></label>
+                        <label className={labelClass}>NIP <span className="text-red-500">*</span></label>
                         <input type="text" value={nip} onChange={e => setNip(e.target.value)} placeholder="18 digit NIP" className={inputClass} />
                       </div>
                       <div>
@@ -204,7 +243,6 @@ export default function TulisBeritaPage() {
                   </motion.div>
                 )}
 
-                {/* Umum Fields */}
                 {tipePenulis === "umum" && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -227,7 +265,6 @@ export default function TulisBeritaPage() {
             </motion.div>
           )}
 
-          {/* STEP 2: KONTEN */}
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-6">
               <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-white/10 shadow-xl space-y-6">
@@ -236,17 +273,13 @@ export default function TulisBeritaPage() {
                   Konten Berita
                 </h2>
 
-                {/* Foto Cover */}
-                <div className="space-y-2">
-                  <label className={labelClass}>Foto / Gambar Utama <span className="text-red-500">*</span></label>
-                  <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-10 text-center hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group">
-                    <Camera className="w-10 h-10 text-slate-300 dark:text-slate-600 group-hover:text-dpr-emerald dark:group-hover:text-dpr-gold mx-auto mb-3 transition-colors" />
-                    <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Klik atau seret foto ke sini</p>
-                    <p className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP — maks. 5MB. Resolusi minimum 1200×630px.</p>
-                  </div>
-                </div>
+                <FileUpload
+                  value={imageUrl}
+                  onChange={setImageUrl}
+                  accept="image"
+                  label="Foto / Gambar Utama"
+                />
 
-                {/* Judul & Kategori */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="sm:col-span-2">
                     <label className={labelClass}>Judul / Headline Berita <span className="text-red-500">*</span></label>
@@ -261,7 +294,6 @@ export default function TulisBeritaPage() {
                   </div>
                 </div>
 
-                {/* Tanggal & Tags */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className={labelClass}>Tanggal Kejadian / Penulisan <span className="text-red-500">*</span></label>
@@ -273,21 +305,18 @@ export default function TulisBeritaPage() {
                   </div>
                 </div>
 
-                {/* Ringkasan */}
                 <div>
                   <label className={labelClass}>Ringkasan / Lead Berita <span className="text-red-500">*</span></label>
-                  <textarea required rows={3} value={ringkasan} onChange={e => setRingkasan(e.target.value)} placeholder="Tuliskan 2–3 kalimat ringkasan yang menjelaskan inti berita. Ini yang akan tampil di halaman daftar berita." className={`${inputClass} resize-y`} />
+                  <textarea required rows={3} value={ringkasan} onChange={e => setRingkasan(e.target.value)} placeholder="Tuliskan 2–3 kalimat ringkasan yang menjelaskan inti berita." className={`${inputClass} resize-y`} />
                   <p className="text-xs text-slate-400 mt-1">{ringkasan.length}/300 karakter</p>
                 </div>
 
-                {/* Isi Berita */}
                 <div>
                   <label className={labelClass}>Isi Berita Lengkap <span className="text-red-500">*</span></label>
-                  <textarea required rows={12} value={isiBerita} onChange={e => setIsiBerita(e.target.value)} placeholder="Tulis isi berita secara lengkap dan terstruktur di sini. Gunakan paragraf yang jelas, logis, dan mudah dipahami oleh pembaca umum..." className={`${inputClass} resize-y`} />
+                  <textarea required rows={12} value={isiBerita} onChange={e => setIsiBerita(e.target.value)} placeholder="Tulis isi berita secara lengkap dan terstruktur di sini..." className={`${inputClass} resize-y`} />
                   <p className="text-xs text-slate-400 mt-1">{isiBerita.length} karakter (minimum 500 karakter disarankan)</p>
                 </div>
 
-                {/* Sumber */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className={labelClass + " mb-0"}><LinkIcon className="w-4 h-4 inline mr-1" />Sumber Referensi</label>
@@ -322,7 +351,6 @@ export default function TulisBeritaPage() {
             </motion.div>
           )}
 
-          {/* STEP 3: LAMPIRAN & SUBMIT */}
           {step === 3 && (
             <motion.div key="step3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-6">
               <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-200 dark:border-white/10 shadow-xl space-y-6">
@@ -331,7 +359,6 @@ export default function TulisBeritaPage() {
                   Lampiran & Konfirmasi
                 </h2>
 
-                {/* Optional Attachment */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
                     <input type="checkbox" id="hasLampiran" checked={hasLampiran} onChange={e => setHasLampiran(e.target.checked)} className="w-4 h-4 accent-dpr-emerald" />
@@ -340,29 +367,30 @@ export default function TulisBeritaPage() {
                     </label>
                   </div>
                   {hasLampiran && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors group">
-                      <Upload className="w-8 h-8 text-slate-300 dark:text-slate-600 group-hover:text-dpr-emerald dark:group-hover:text-dpr-gold mx-auto mb-2 transition-colors" />
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Unggah dokumen PDF, DOCX, atau XLSX</p>
-                      <p className="text-xs text-slate-400 mt-1">Maks. 10MB per file</p>
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
+                      <FileUpload
+                        value={documentUrl}
+                        onChange={setDocumentUrl}
+                        accept="document"
+                        label="Unggah dokumen PDF, DOCX, atau XLSX"
+                      />
                     </motion.div>
                   )}
                 </div>
 
-                {/* Review Summary */}
                 <div className="bg-slate-50 dark:bg-dpr-navy-card p-5 rounded-2xl border border-slate-200 dark:border-white/10 space-y-3 text-sm">
                   <h3 className="font-bold text-slate-900 dark:text-white">Ringkasan Pengiriman</h3>
                   <div className="space-y-2 text-slate-600 dark:text-slate-400">
                     <div className="flex gap-2"><span className="font-semibold text-slate-700 dark:text-slate-300 w-28 shrink-0">Penulis:</span> <span>{namaLengkap || "—"}</span></div>
                     <div className="flex gap-2"><span className="font-semibold text-slate-700 dark:text-slate-300 w-28 shrink-0">Jenis Penulis:</span> <span className="capitalize">{tipePenulis.replace("_", " ")}</span></div>
-                    {tipePenulis === "anggota_dpr" && <div className="flex gap-2"><span className="font-semibold text-slate-700 dark:text-slate-300 w-28 shrink-0">No. Anggota:</span> <span>{nomorAnggota || "—"}</span></div>}
                     <div className="flex gap-2"><span className="font-semibold text-slate-700 dark:text-slate-300 w-28 shrink-0">Email:</span> <span>{email || "—"}</span></div>
                     <div className="flex gap-2"><span className="font-semibold text-slate-700 dark:text-slate-300 w-28 shrink-0">Judul:</span> <span className="line-clamp-1">{judulBerita || "—"}</span></div>
                     <div className="flex gap-2"><span className="font-semibold text-slate-700 dark:text-slate-300 w-28 shrink-0">Kategori:</span> <span>{kategori}</span></div>
-                    <div className="flex gap-2"><span className="font-semibold text-slate-700 dark:text-slate-300 w-28 shrink-0">Panjang Isi:</span> <span>{isiBerita.length} karakter</span></div>
+                    <div className="flex gap-2"><span className="font-semibold text-slate-700 dark:text-slate-300 w-28 shrink-0">Foto:</span> <span>{imageUrl ? "✓ Terupload" : "—"}</span></div>
+                    {hasLampiran && <div className="flex gap-2"><span className="font-semibold text-slate-700 dark:text-slate-300 w-28 shrink-0">Dokumen:</span> <span>{documentUrl ? "✓ Terupload" : "—"}</span></div>}
                   </div>
                 </div>
 
-                {/* Declaration */}
                 <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-700/30">
                   <input type="checkbox" required id="deklarasi" className="w-4 h-4 accent-amber-500 mt-0.5 shrink-0" />
                   <label htmlFor="deklarasi" className="text-xs text-amber-800 dark:text-amber-300 cursor-pointer leading-relaxed">
@@ -374,9 +402,9 @@ export default function TulisBeritaPage() {
                   <button type="button" onClick={() => setStep(2)} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm border border-slate-300 dark:border-white/10">
                     ← Kembali
                   </button>
-                  <button type="submit" className="flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient hover:opacity-90 text-white dark:text-dpr-navy font-bold text-sm px-8 py-2.5 rounded-xl shadow-md transition-all">
-                    <Upload className="w-4 h-4" />
-                    Kirim Berita Sekarang
+                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient hover:opacity-90 text-white dark:text-dpr-navy font-bold text-sm px-8 py-2.5 rounded-xl shadow-md transition-all disabled:opacity-50">
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {submitting ? "Mengirim..." : "Kirim Berita Sekarang"}
                   </button>
                 </div>
               </div>

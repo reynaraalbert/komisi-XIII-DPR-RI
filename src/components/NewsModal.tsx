@@ -62,7 +62,7 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
             &quot;{article.summary}&quot;
           </div>
 
-          <div className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed space-y-4 whitespace-pre-line border-b border-slate-200 dark:border-white/10 pb-6">
+          <div className="text-slate-700 dark:text-slate-300 text-sm leading-relaxed space-y-4 whitespace-pre-line border-b border-slate-200 dark:border-white/10 pb-6 text-justify">
             {article.content}
           </div>
 

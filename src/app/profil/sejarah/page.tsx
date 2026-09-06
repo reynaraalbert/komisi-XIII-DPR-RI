@@ -1,11 +1,19 @@
 "use client";
 
 import React from "react";
-import { Clock, ChevronRight, Milestone, BookOpen, Calendar, Star } from "lucide-react";
+import { Clock, ChevronRight, ChevronLeft, BookOpen, Calendar, Star } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useCmsContent } from "@/components/CmsProvider";
 
-const milestones = [
+const DEFAULT_FACTS = [
+  { label: "Tahun Berdiri", value: "2024", icon: Calendar },
+  { label: "Periode Aktif", value: "2024–2029", icon: Clock },
+  { label: "Total Anggota", value: "46 Orang", icon: Star },
+  { label: "Mitra Kerja", value: "8 K/L", icon: BookOpen },
+];
+
+const DEFAULT_MILESTONES = [
   {
     year: "Oktober 2024",
     title: "Pembentukan Komisi XIII DPR RI Periode 2024–2029",
@@ -44,14 +52,53 @@ const milestones = [
   },
 ];
 
-const facts = [
-  { label: "Tahun Berdiri", value: "2024", icon: Calendar },
-  { label: "Periode Aktif", value: "2024–2029", icon: Clock },
-  { label: "Total Anggota", value: "46 Orang", icon: Star },
-  { label: "Mitra Kerja", value: "8 K/L", icon: BookOpen },
+const DEFAULT_NARASI = [
+  "Komisi XIII Dewan Perwakilan Rakyat Republik Indonesia merupakan salah satu alat kelengkapan DPR RI yang dibentuk berdasarkan Keputusan Rapat Paripurna DPR RI pada awal masa jabatan 2024–2029. Pembentukan komisi ini merupakan respons strategis parlemen terhadap semakin kompleksnya tantangan hukum, hak asasi manusia, keimigrasian, pemasyarakatan, dan pemberantasan korupsi di era modern.",
+  "Sebelum terbentuk sebagai komisi yang berdiri sendiri, fungsi-fungsi pengawasan dan legislasi di bidang hukum dan HAM tersebar di berbagai komisi, terutama Komisi III. Namun, seiring dengan tumbuhnya tuntutan publik akan akuntabilitas lembaga penegak hukum dan meningkatnya kasus korupsi, TPPO, serta pelanggaran HAM, DPR RI menilai perlunya pembentukan komisi khusus yang lebih terfokus dan efektif.",
+  "Komisi XIII hadir untuk menjembatani kebijakan negara dengan aspirasi masyarakat dalam mewujudkan sistem hukum Indonesia yang adil, transparan, dan humanis. Dengan kewenangan penuh atas tiga fungsi parlemen — legislasi, anggaran, dan pengawasan — Komisi XIII berkomitmen menjadi mitra strategis pemerintah dalam mendorong reformasi hukum yang komprehensif dan berkelanjutan.",
+  "Fraksi Partai Golkar, sebagai salah satu fraksi terbesar di DPR RI, menempatkan beberapa kader terbaiknya di Komisi XIII. Para anggota Fraksi Golkar di Komisi XIII membawa rekam jejak dan keahlian yang beragam — dari pakar hukum, advokat senior, dokter, hingga teknolog — untuk memastikan bahwa agenda reformasi hukum dijalankan dengan pendekatan yang komprehensif, berbasis data, dan berpihak pada kepentingan rakyat.",
 ];
 
 export default function SejarahPage() {
+  const { pages } = useCmsContent();
+  const page = pages.find((p) => p.slug === "profil/sejarah");
+
+  const getSection = (title: string) =>
+    page?.sections.find((s) => s.title === title);
+
+  // Header
+  const headerSub = getSection("Header Halaman Sejarah")?.subsections[0]?.fields || {};
+  const badge = headerSub.badge || "PROFIL KOMISI XIII — SEJARAH";
+  const judul = headerSub.judul || "Sejarah Komisi XIII DPR RI";
+  const deskripsi = headerSub.deskripsi || "Perjalanan panjang pembentukan Komisi XIII DPR RI sebagai garda terdepan reformasi hukum, perlindungan HAM, dan pemberantasan korupsi di Indonesia.";
+
+  // Facts
+  const factSubs = getSection("Statistik & Fakta Komisi")?.subsections || [];
+  const facts = factSubs.length > 0
+    ? factSubs.map((sub, i) => ({
+        label: sub.fields.label || DEFAULT_FACTS[i]?.label || "Label",
+        value: sub.fields.value || DEFAULT_FACTS[i]?.value || "–",
+        icon: DEFAULT_FACTS[i]?.icon || Calendar,
+      }))
+    : DEFAULT_FACTS;
+
+  // Narasi
+  const narasiSubs = getSection("Narasi Latar Belakang Pembentukan")?.subsections || [];
+  const narasi = narasiSubs.length > 0
+    ? narasiSubs.map((sub) => sub.fields.teks || "")
+    : DEFAULT_NARASI;
+
+  // Timeline
+  const timelineSubs = getSection("Linimasa Sejarah Penting")?.subsections || [];
+  const milestones = timelineSubs.length > 0
+    ? timelineSubs.map((sub) => ({
+        year: sub.fields.tahun || "–",
+        title: sub.fields.judul || "–",
+        description: sub.fields.deskripsi || "–",
+        highlight: sub.fields.highlight === "true",
+      }))
+    : DEFAULT_MILESTONES;
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
 
@@ -59,13 +106,13 @@ export default function SejarahPage() {
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-dpr-emerald/10 dark:bg-dpr-gold/10 border border-dpr-emerald/30 dark:border-dpr-gold/30 text-dpr-emerald-dark dark:text-dpr-gold text-xs font-bold">
           <Clock className="w-4 h-4" />
-          <span>PROFIL KOMISI XIII — SEJARAH</span>
+          <span>{badge}</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white leading-tight">
-          Sejarah <span className="text-dpr-emerald dark:text-dpr-gold">Komisi XIII DPR RI</span>
+          <span className="text-dpr-emerald dark:text-dpr-gold">{judul}</span>
         </h1>
         <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-          Perjalanan panjang pembentukan Komisi XIII DPR RI sebagai garda terdepan reformasi hukum, perlindungan HAM, dan pemberantasan korupsi di Indonesia.
+          {deskripsi}
         </p>
       </div>
 
@@ -88,19 +135,10 @@ export default function SejarahPage() {
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white border-b-2 border-dpr-emerald dark:border-dpr-gold pb-3 inline-block">
           Latar Belakang Pembentukan
         </h2>
-        <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-          <p>
-            Komisi XIII Dewan Perwakilan Rakyat Republik Indonesia merupakan salah satu alat kelengkapan DPR RI yang dibentuk berdasarkan Keputusan Rapat Paripurna DPR RI pada awal masa jabatan 2024–2029. Pembentukan komisi ini merupakan respons strategis parlemen terhadap semakin kompleksnya tantangan hukum, hak asasi manusia, keimigrasian, pemasyarakatan, dan pemberantasan korupsi di era modern.
-          </p>
-          <p>
-            Sebelum terbentuk sebagai komisi yang berdiri sendiri, fungsi-fungsi pengawasan dan legislasi di bidang hukum dan HAM tersebar di berbagai komisi, terutama Komisi III. Namun, seiring dengan tumbuhnya tuntutan publik akan akuntabilitas lembaga penegak hukum dan meningkatnya kasus korupsi, TPPO, serta pelanggaran HAM, DPR RI menilai perlunya pembentukan komisi khusus yang lebih terfokus dan efektif.
-          </p>
-          <p>
-            Komisi XIII hadir untuk menjembatani kebijakan negara dengan aspirasi masyarakat dalam mewujudkan sistem hukum Indonesia yang adil, transparan, dan humanis. Dengan kewenangan penuh atas tiga fungsi parlemen — legislasi, anggaran, dan pengawasan — Komisi XIII berkomitmen menjadi mitra strategis pemerintah dalam mendorong reformasi hukum yang komprehensif dan berkelanjutan.
-          </p>
-          <p>
-            Fraksi Partai Golkar, sebagai salah satu fraksi terbesar di DPR RI, menempatkan beberapa kader terbaiknya di Komisi XIII. Para anggota Fraksi Golkar di Komisi XIII membawa rekam jejak dan keahlian yang beragam — dari pakar hukum, advokat senior, dokter, hingga teknolog — untuk memastikan bahwa agenda reformasi hukum dijalankan dengan pendekatan yang komprehensif, berbasis data, dan berpihak pada kepentingan rakyat.
-          </p>
+        <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300 leading-relaxed text-justify">
+          {narasi.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
         </div>
       </div>
 
@@ -122,23 +160,31 @@ export default function SejarahPage() {
               <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-dpr-emerald dark:bg-dpr-gold border-2 border-white dark:border-slate-900 shadow" />
               <span className={`text-xs font-bold uppercase tracking-wider ${m.highlight ? "text-dpr-emerald dark:text-dpr-gold" : "text-slate-500 dark:text-slate-400"}`}>{m.year}</span>
               <h3 className="font-bold text-slate-900 dark:text-white text-base">{m.title}</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{m.description}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed text-justify">{m.description}</p>
             </motion.div>
           ))}
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-200 dark:border-white/10">
-        <Link href="/profil/visi-misi" className="inline-flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-sm px-5 py-2.5 rounded-full shadow-md hover:opacity-90 transition-all">
-          Visi & Misi <ChevronRight className="w-4 h-4" />
-        </Link>
-        <Link href="/profil/pimpinan" className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm px-5 py-2.5 rounded-full border border-slate-300 dark:border-white/10 hover:border-dpr-emerald dark:hover:border-dpr-gold transition-all">
-          Pimpinan & Anggota <ChevronRight className="w-4 h-4" />
-        </Link>
-        <Link href="/profil/mitra-kerja" className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm px-5 py-2.5 rounded-full border border-slate-300 dark:border-white/10 hover:border-dpr-emerald dark:hover:border-dpr-gold transition-all">
-          Daftar Mitra Kerja <ChevronRight className="w-4 h-4" />
-        </Link>
+      {/* Navigation — 2 Buttons side-by-side */}
+      <div className="pt-6 border-t border-slate-200 dark:border-white/10">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
+          <Link
+            href="/profil/mitra-kerja"
+            className="flex items-center justify-center gap-1 sm:gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm px-2.5 sm:px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-dpr-emerald dark:hover:border-dpr-gold transition-all text-center group min-w-0"
+          >
+            <ChevronLeft className="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform text-dpr-emerald dark:text-dpr-gold" />
+            <span className="truncate">Mitra Kerja</span>
+          </Link>
+
+          <Link
+            href="/profil/visi-misi"
+            className="flex items-center justify-center gap-1 sm:gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs sm:text-sm px-2.5 sm:px-5 py-3 rounded-2xl shadow-md hover:opacity-90 transition-all text-center group min-w-0"
+          >
+            <span className="truncate">Visi & Misi</span>
+            <ChevronRight className="w-4 h-4 shrink-0 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
       </div>
     </div>
   );

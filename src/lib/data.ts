@@ -53,6 +53,89 @@ export interface MitraKerja {
   description: string;
 }
 
+export interface NewsSubmission {
+  id: string;
+  biodata: {
+    tipePenulis: string;
+    nama: string;
+    email: string;
+    nomorAnggota?: string;
+    fraksi?: string;
+    dapil?: string;
+    masaJabatan?: string;
+    nip?: string;
+    unitKerja?: string;
+    jabatan?: string;
+    pekerjaan?: string;
+    instansi?: string;
+  };
+  artikel: {
+    judul: string;
+    kategori: string;
+    tanggal: string;
+    ringkasan: string;
+    isiBerita: string;
+    tags?: string;
+    sumber?: { judul: string; url: string }[];
+  };
+  attachments: {
+    imageUrl?: string;
+    documentUrl?: string;
+  };
+  status: "pending" | "approved" | "declined";
+  proofreadNotes?: string;
+  createdAt: string;
+}
+
+export interface Aspirasi {
+  id: string;
+  mode: "Terbuka" | "Anonim";
+  name?: string;
+  email?: string;
+  whatsapp?: string;
+  subject: string;
+  message: string;
+  category: string;
+  status: "new" | "reviewed" | "resolved";
+  createdAt: string;
+}
+
+export interface FooterContent {
+  brandDescription: string;
+  address: string;
+  phone: string;
+  email: string;
+  transparencyText: string;
+  ppidText: string;
+  copyrightText: string;
+}
+
+export interface MapsContent {
+  embedUrl: string;
+  openUrl: string;
+  address: string;
+  description: string;
+}
+
+export interface PageSubsection {
+  id: string;
+  title: string;
+  fields: Record<string, string>;
+}
+
+export interface PageSection {
+  id: string;
+  title: string;
+  subsections: PageSubsection[];
+}
+
+export interface PageContent {
+  id: string;
+  slug: string;
+  title: string;
+  sections: PageSection[];
+}
+
 // --- DATA MOCKS ---
 
 export const PIMPINAN_KOMISI: Member[] = [
@@ -453,4 +536,125 @@ export const STATS = {
   activeBills: 12,
   completedHearings: 84,
   aspirationsProcessed: 1420
+};
+
+// --- EDITABLE SITE CONTENT (used by CMS + rendered by public pages) ---
+
+export interface MitraKerjaSiteContent {
+  tagline: string;
+}
+
+export interface HeroContent {
+  badge: string;
+  title1: string;
+  title2: string;
+  subtitle: string;
+  description: string;
+  ctaPrimaryLabel: string;
+  ctaPrimaryHref: string;
+  ctaSecondaryLabel: string;
+  ctaSecondaryHref: string;
+  statuteQuote: string;
+  statuteProgressLabel: string;
+  statuteProgressValue: string;
+}
+
+export interface StatBarContent {
+  label1: string;
+  label2: string;
+  label3: string;
+  label4: string;
+}
+
+export interface MitraSectionContent {
+  tagline: string;
+  title: string;
+  description: string;
+}
+
+export interface KontakContent {
+  serviceTitle: string;
+  serviceHours: string;
+  email: string;
+  mediaTitle: string;
+  instagramHandle: string;
+  youtubeLabel: string;
+  twitterHandle: string;
+  websiteLabel: string;
+  aspirasiTitle: string;
+  aspirasiDesc: string;
+  aspirasiCta: string;
+}
+
+export interface SiteContent {
+  hero: HeroContent;
+  statBar: StatBarContent;
+  mitraSection: MitraSectionContent;
+  kontak: KontakContent;
+  footer: FooterContent;
+  maps: MapsContent;
+}
+
+export const SiteContent: SiteContent = {
+  hero: {
+    badge: "Parlemen Transparan & Akuntabel • Periode 2024-2029",
+    title1: "Dewan Perwakilan Rakyat Republik Indonesia (DPR RI)",
+    title2: "KOMISI XIII",
+    subtitle: "Reformasi Hukum & HAM",
+    description:
+      "Komisi XIII DPR RI bertugas mengawasi legislasi, anggaran, dan kinerja penegakan hukum nasional bersama Kementerian Hukum, KemenHAM, Kemenimipas, KPK, BNPT, Komnas HAM, dan LPSK.",
+    ctaPrimaryLabel: "Daftar Anggota Komisi",
+    ctaPrimaryHref: "/anggota",
+    ctaSecondaryLabel: "Jadwal Rapat Kerja",
+    ctaSecondaryHref: "/agenda",
+    statuteQuote:
+      "Menjamin kepastian hukum yang adil serta perlindungan hak asasi seluruh warga negara Indonesia tanpa diskriminasi.",
+    statuteProgressLabel: "Fokus Pengawasan HAM & Imigrasi",
+    statuteProgressValue: "94% Target",
+  },
+  statBar: {
+    label1: "Anggota Parlemen",
+    label2: "Kementerian & Lembaga",
+    label3: "Rapat Kemitraan",
+    label4: "Aspirasi Diproses",
+  },
+  mitraSection: {
+    tagline: "KEMITRAAN STRATEGIS",
+    title: "Mitra Kerja Komisi XIII DPR RI",
+    description:
+      "Komisi XIII melakukan pengawasan berkala dan pembagian alokasi anggaran bersama 8 Kementerian & Lembaga Negara Republik Indonesia.",
+  },
+  kontak: {
+    serviceTitle: "Informasi Jam Layanan",
+    serviceHours: "Senin & Kamis: 14.00 – 17.00 WIB (Ruang Sekretariat)",
+    email: "komisi13@dpr.go.id",
+    mediaTitle: "Akun Media Sosial Resmi",
+    instagramHandle: "@komisi13dpr",
+    youtubeLabel: "DPR RI Official",
+    twitterHandle: "@DPR_RI",
+    websiteLabel: "dpr.go.id",
+    aspirasiTitle: "Punya Aspirasi Rakyat?",
+    aspirasiDesc: "Sampaikan aduan & masukan Anda di Halaman Khusus Aspirasi.",
+    aspirasiCta: "Form Aspirasi",
+  },
+  footer: {
+    brandDescription:
+      "Komisi XIII DPR RI membidangi Reformasi Hukum, Hak Asasi Manusia (HAM), Keimigrasian, Pemasyarakatan, Antikorupsi, dan Kepegawaian Negara.",
+    address: "Gedung Nusantara II Lantai 1, Jl. Jend. Gatot Subroto, Jakarta Pusat 10270",
+    phone: "(021) 5715-341 / Ext. 1300",
+    email: "golkarinternshipstudent@gmail.com",
+    transparencyText:
+      "Setiap hasil risalah rapat, draf rancangan undang-undang, serta risalah pengawasan Komisi XIII DPR RI bersifat terbuka dan dapat diakses oleh publik sesuai UU No. 14 Tahun 2008 tentang Keterbukaan Informasi Publik.",
+    ppidText: "Jam Kerja: Senin - Jumat (08:00 - 16:00 WIB)",
+    copyrightText: "© Build by Reynara Albert Pradana. Hak Cipta Dilindungi Undang-Undang.",
+  },
+  maps: {
+    embedUrl:
+      "https://maps.google.com/maps?q=Gedung+Nusantara+II+DPR+RI&t=&z=15&ie=UTF8&iwloc=&output=embed",
+    openUrl: "https://maps.google.com",
+    address:
+      "Gedung Nusantara II, Kompleks Parlemen DPR/MPR RI, Jl. Jend. Gatot Subroto, Senayan, Jakarta Pusat.",
+    description:
+      "Gedung Nusantara II, Kompleks Parlemen DPR/MPR RI, Jl. Jend. Gatot Subroto, Senayan, Jakarta Pusat.",
+  },
 };

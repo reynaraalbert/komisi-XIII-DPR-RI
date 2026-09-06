@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { MITRA_KERJA } from "@/lib/data";
+import { useCmsContent } from "@/components/CmsProvider";
 import {
   MessageSquare,
   User,
@@ -28,8 +28,18 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function AspirasiPage() {
+  const { mitraKerja } = useCmsContent();
   const [submissionMethod, setSubmissionMethod] = useState<"Terbuka" | "Anonim">("Terbuka");
   const [selectedTopic, setSelectedTopic] = useState<string>("Umum / Reformasi Hukum");
+  const [topicDropdownOpen, setTopicDropdownOpen] = useState(false);
+
+  const topicOptions = [
+    { label: "Umum / Reformasi Hukum & HAM", value: "Umum / Reformasi Hukum" },
+    ...mitraKerja.map((m) => ({
+      label: `${m.acronym} - ${m.name}`,
+      value: m.name,
+    })),
+  ];
   const [aspirationForm, setAspirationForm] = useState({
     name: "",
     email: "",
@@ -38,17 +48,42 @@ export default function AspirasiPage() {
     message: "",
   });
   const [aspirationSubmitted, setAspirationSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  const handleAspirationSubmit = (e: React.FormEvent) => {
+  const handleAspirationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submissionMethod === "Terbuka" && !aspirationForm.name) return;
     if (!aspirationForm.message) return;
-    setAspirationSubmitted(true);
-    setTimeout(() => {
-      setAspirationSubmitted(false);
-      setAspirationForm({ name: "", email: "", whatsapp: "", subject: "", message: "" });
-    }, 5000);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/aspirasi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: submissionMethod,
+          name: submissionMethod === "Terbuka" ? aspirationForm.name : undefined,
+          email: submissionMethod === "Terbuka" ? aspirationForm.email : undefined,
+          whatsapp: aspirationForm.whatsapp || undefined,
+          subject: aspirationForm.subject,
+          message: aspirationForm.message,
+          category: selectedTopic,
+        }),
+      });
+      if (res.ok) {
+        setAspirationSubmitted(true);
+        setTimeout(() => {
+          setAspirationSubmitted(false);
+          setAspirationForm({ name: "", email: "", whatsapp: "", subject: "", message: "" });
+        }, 5000);
+      } else {
+        alert("Gagal mengirim aspirasi. Silakan coba lagi.");
+      }
+    } catch {
+      alert("Gagal mengirim aspirasi. Periksa koneksi internet Anda.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const faqList = [
@@ -130,51 +165,97 @@ export default function AspirasiPage() {
               <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 PILIH METODE PENGIRIMAN
               </label>
-              <div className="grid grid-cols-2 p-1.5 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-white/10">
+              <div className="grid grid-cols-2 p-1.5 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200 dark:border-white/10 gap-1">
                 <button
                   type="button"
                   onClick={() => setSubmissionMethod("Terbuka")}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                  className={`flex items-center justify-center gap-2 px-2 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all ${
                     submissionMethod === "Terbuka"
                       ? "bg-white dark:bg-blue-600 text-blue-700 dark:text-white shadow-md"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  <User className="w-4 h-4" />
-                  <span>Terbuka (Nama & Email)</span>
+                  <User className="w-4 h-4 shrink-0 text-dpr-emerald dark:text-dpr-gold" />
+                  <div className="flex flex-col items-center sm:items-start text-center sm:text-left leading-tight">
+                    <span className="text-xs sm:text-sm font-bold">Terbuka</span>
+                    <span className="text-[9px] sm:text-[10px] font-medium opacity-80">(Nama & Email)</span>
+                  </div>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => setSubmissionMethod("Anonim")}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                  className={`flex items-center justify-center gap-2 px-2 sm:px-3 py-2.5 sm:py-3 rounded-xl transition-all ${
                     submissionMethod === "Anonim"
                       ? "bg-white dark:bg-blue-600 text-blue-700 dark:text-white shadow-md"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   }`}
                 >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Anonim (Kerahasiaan 100%)</span>
+                  <ShieldCheck className="w-4 h-4 shrink-0 text-dpr-emerald dark:text-dpr-gold" />
+                  <div className="flex flex-col items-center sm:items-start text-center sm:text-left leading-tight">
+                    <span className="text-xs sm:text-sm font-bold">Anonim</span>
+                    <span className="text-[9px] sm:text-[10px] font-medium opacity-80">(Kerahasiaan 100%)</span>
+                  </div>
                 </button>
               </div>
             </div>
 
-            {/* KATEGORI MITRA */}
-            <div className="space-y-2">
+            {/* KATEGORI MITRA — Custom Responsive Dropdown */}
+            <div className="space-y-2 relative z-20">
               <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 KATEGORI BIDANG / MITRA TERKAIT
               </label>
-              <select
-                value={selectedTopic}
-                onChange={(e) => setSelectedTopic(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white p-3 rounded-xl border border-slate-200 dark:border-white/10 focus:border-blue-500 focus:outline-none font-semibold"
-              >
-                <option value="Umum / Reformasi Hukum">Umum / Reformasi Hukum & HAM</option>
-                {MITRA_KERJA.map((m) => (
-                  <option key={m.id} value={m.name}>
-                    {m.acronym} - {m.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setTopicDropdownOpen(!topicDropdownOpen)}
+                  className="w-full bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white p-3 rounded-xl border border-slate-200 dark:border-white/10 focus:border-blue-500 focus:outline-none font-semibold flex items-center justify-between gap-2 text-left transition-all hover:bg-slate-100 dark:hover:bg-slate-700/60"
+                >
+                  <span className="truncate pr-2">
+                    {topicOptions.find((t) => t.value === selectedTopic)?.label || selectedTopic}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${topicDropdownOpen ? "rotate-180 text-blue-500" : ""}`} />
+                </button>
+
+                <AnimatePresence>
+                  {topicDropdownOpen && (
+                    <>
+                      {/* Backdrop overlay to dismiss when clicking outside */}
+                      <div className="fixed inset-0 z-30" onClick={() => setTopicDropdownOpen(false)} />
+
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/15 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto p-1.5 space-y-1"
+                      >
+                        {topicOptions.map((opt) => {
+                          const isSelected = selectedTopic === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                setSelectedTopic(opt.value);
+                                setTopicDropdownOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between p-2.5 rounded-lg text-xs font-semibold transition-colors text-left ${
+                                isSelected
+                                  ? "bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-dpr-gold"
+                                  : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              <span className="truncate pr-2">{opt.label}</span>
+                              {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-dpr-gold shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             {/* FORM BODY */}
@@ -279,9 +360,10 @@ export default function AspirasiPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-4 rounded-full shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
+                  disabled={submitting}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-4 rounded-full shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <span>Kirimkan Aspirasi Sekarang</span>
+                  <span>{submitting ? "Mengirim..." : "Kirimkan Aspirasi Sekarang"}</span>
                   <Send className="w-4 h-4" />
                 </button>
               </form>

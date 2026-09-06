@@ -1,19 +1,23 @@
 "use client";
 
 import React, { useState } from "react";
-import { AGENDA_LIST, AgendaItem } from "@/lib/data";
+import { AgendaItem } from "@/lib/data";
+import { useCmsContent } from "@/components/CmsProvider";
 import AgendaModal from "@/components/AgendaModal";
 import { Calendar, Clock, MapPin, Play, FileText, Filter, Video, Search, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function AgendaPage() {
+  const { agenda } = useCmsContent();
   const [selectedStatus, setSelectedStatus] = useState<string>("Semua");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeAgenda, setActiveAgenda] = useState<AgendaItem | null>(null);
 
   const statusOptions = ["Semua", "LIVE NOW", "SCHEDULED", "COMPLETED"];
 
-  const filteredAgendas = AGENDA_LIST.filter((item) => {
+  const liveItem = agenda.find((a) => a.status === "LIVE NOW") || null;
+
+  const filteredAgendas = agenda.filter((item) => {
     const matchesStatus =
       selectedStatus === "Semua" ||
       (selectedStatus === "LIVE NOW" && item.status === "LIVE NOW") ||
@@ -46,7 +50,7 @@ export default function AgendaPage() {
       </div>
 
       {/* Live Hearing Highlight Section */}
-      {AGENDA_LIST.some((a) => a.status === "LIVE NOW") && (
+      {liveItem && (
         <div className="glass-panel-emerald dark:glass-panel-red p-6 sm:p-8 rounded-3xl border border-dpr-emerald dark:border-dpr-red shadow-2xl relative overflow-hidden space-y-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-200 dark:border-dpr-red/30 pb-4">
             <div className="flex items-center gap-3">
@@ -58,7 +62,7 @@ export default function AgendaPage() {
             </div>
 
             <button
-              onClick={() => setActiveAgenda(AGENDA_LIST.find((a) => a.status === "LIVE NOW") || null)}
+              onClick={() => setActiveAgenda(liveItem)}
               className="bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs px-5 py-2.5 rounded-full shadow-md dark:shadow-gold-glow hover:opacity-90 transition-opacity flex items-center gap-2"
             >
               <Play className="w-4 h-4" />
@@ -69,20 +73,20 @@ export default function AgendaPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             <div className="lg:col-span-8 space-y-3">
               <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                {AGENDA_LIST.find((a) => a.status === "LIVE NOW")?.title}
+                {liveItem.title}
               </h2>
               <p className="text-slate-700 dark:text-slate-200 text-xs sm:text-sm leading-relaxed">
-                {AGENDA_LIST.find((a) => a.status === "LIVE NOW")?.summary}
+                {liveItem.summary}
               </p>
               <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-300 pt-2">
                 <span className="flex items-center gap-1.5 text-dpr-emerald-dark dark:text-dpr-gold font-semibold">
                   <MapPin className="w-4 h-4" />
-                  {AGENDA_LIST.find((a) => a.status === "LIVE NOW")?.location}
+                  {liveItem.location}
                 </span>
                 <span>•</span>
                 <span className="flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
-                  {AGENDA_LIST.find((a) => a.status === "LIVE NOW")?.time}
+                  {liveItem.time}
                 </span>
               </div>
             </div>
@@ -90,7 +94,7 @@ export default function AgendaPage() {
             <div className="lg:col-span-4 bg-white dark:bg-dpr-navy/80 p-5 rounded-2xl border border-slate-200 dark:border-white/10 text-xs space-y-2 shadow-sm">
               <span className="text-dpr-emerald-dark dark:text-dpr-gold font-bold block uppercase tracking-wider">MITRA KERJA TERDAFTAR</span>
               <p className="text-slate-900 dark:text-white font-semibold text-sm">
-                {AGENDA_LIST.find((a) => a.status === "LIVE NOW")?.partner}
+                {liveItem.partner}
               </p>
               <span className="text-slate-500 dark:text-slate-400 block pt-1">Gedung Nusantara II Senayan, Jakarta</span>
             </div>
@@ -118,16 +122,16 @@ export default function AgendaPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200 dark:border-white/5">
+        <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-white/10 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap pb-1 -mx-1 px-1">
           {statusOptions.map((opt) => {
             const isActive = selectedStatus === opt;
             return (
               <button
                 key={opt}
                 onClick={() => setSelectedStatus(opt)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                className={`shrink-0 whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   isActive
-                    ? "bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold shadow-md"
+                    ? "bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold shadow-md scale-105"
                     : "bg-slate-100 dark:bg-dpr-navy text-slate-700 dark:text-slate-300 hover:text-dpr-emerald dark:hover:text-white border border-slate-200 dark:border-white/10"
                 }`}
               >

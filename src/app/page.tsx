@@ -3,15 +3,24 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { STATS, MITRA_KERJA, BERITA_LIST, AGENDA_LIST, NewsArticle, AgendaItem } from "@/lib/data";
+import { NewsArticle, AgendaItem } from "@/lib/data";
+import { useCmsContent } from "@/components/CmsProvider";
 import NewsModal from "@/components/NewsModal";
 import AgendaModal from "@/components/AgendaModal";
 import { Shield, Users, Scale, FileText, ArrowRight, Play, Calendar, CheckCircle2, MessageSquare, Sparkles, Building2, Gavel, MapPin, Clock, Mail, Instagram, User, ExternalLink, Phone, Youtube, Twitter, Globe, Share2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function HomePage() {
+  const { stats, mitraKerja, berita, agenda, siteContent } = useCmsContent();
   const [selectedNews, setSelectedNews] = useState<NewsArticle | null>(null);
   const [selectedAgenda, setSelectedAgenda] = useState<AgendaItem | null>(null);
+
+  const hero = siteContent.hero;
+  const statBar = siteContent.statBar;
+  const mitraSection = siteContent.mitraSection;
+  const kontak = siteContent.kontak;
+  const maps = siteContent.maps;
+  const liveAgenda = agenda.find((a) => a.status === "LIVE NOW") || null;
 
   return (
     <div className="space-y-20 pb-20">
@@ -34,68 +43,70 @@ export default function HomePage() {
             >
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 dark:bg-dpr-gold/10 border border-emerald-300 dark:border-dpr-gold/30 text-dpr-emerald-dark dark:text-dpr-gold text-xs font-bold">
                 <Sparkles className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
-                <span>Parlemen Transparan & Akuntabel • Periode 2024-2029</span>
+                <span>{hero.badge}</span>
               </div>
 
               <div className="space-y-2 sm:space-y-3">
                 {/* Tier 1: Main Title */}
                 <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-800 dark:text-white uppercase tracking-tight leading-[1.15]">
-                  Dewan Perwakilan Rakyat Republik Indonesia (DPR RI)
+                  {hero.title1}
                 </h1>
 
                 {/* Tier 2: Subtitle */}
                 <h2 className="text-xl sm:text-3xl lg:text-4xl font-extrabold text-dpr-emerald dark:text-red-600 uppercase tracking-wide">
-                  KOMISI XIII
+                  {hero.title2}
                 </h2>
 
                 {/* Tier 3: Smaller Description */}
                 <p className="text-base sm:text-xl font-bold text-slate-700 dark:text-slate-300">
-                  Reformasi Hukum & HAM
+                  {hero.subtitle}
                 </p>
               </div>
 
               <p className="text-slate-800 dark:text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl font-medium">
-                Komisi XIII DPR RI bertugas mengawasi legislasi, anggaran, dan kinerja penegakan hukum nasional bersama Kementerian Hukum, KemenHAM, Kemenimipas, KPK, BNPT, Komnas HAM, dan LPSK.
+                {hero.description}
               </p>
 
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
                 <Link
-                  href="/anggota"
+                  href={hero.ctaPrimaryHref}
                   className="bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs sm:text-sm px-7 py-3.5 rounded-full shadow-md dark:shadow-gold-glow hover:scale-105 transition-transform flex items-center gap-2"
                 >
                   <Users className="w-4 h-4" />
-                  <span>Daftar Anggota Komisi</span>
+                  <span>{hero.ctaPrimaryLabel}</span>
                 </Link>
 
                 <Link
-                  href="/agenda"
+                  href={hero.ctaSecondaryHref}
                   className="glass-panel text-slate-900 dark:text-white hover:text-dpr-emerald dark:hover:text-dpr-gold font-bold text-xs sm:text-sm px-7 py-3.5 rounded-full border border-slate-300 dark:border-white/15 transition-all flex items-center gap-2"
                 >
                   <Calendar className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
-                  <span>Jadwal Rapat Kerja</span>
+                  <span>{hero.ctaSecondaryLabel}</span>
                 </Link>
               </div>
 
               {/* Quick Live Hearing Callout */}
-              {AGENDA_LIST.some((a) => a.status === "LIVE NOW") && (
+              {liveAgenda && (
                 <div
-                  onClick={() => setSelectedAgenda(AGENDA_LIST.find((a) => a.status === "LIVE NOW") || null)}
-                  className="glass-panel-emerald dark:glass-panel-red p-4 rounded-2xl cursor-pointer transition-all flex items-center justify-between gap-4 mt-6"
+                  onClick={() => setSelectedAgenda(liveAgenda)}
+                  className="glass-panel-emerald dark:glass-panel-red p-3 sm:p-4 rounded-2xl cursor-pointer transition-all flex items-center gap-3 mt-6 overflow-hidden"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-dpr-emerald dark:bg-dpr-red flex items-center justify-center shrink-0">
-                      <Play className="w-5 h-5 text-white ml-0.5 animate-pulse" />
-                    </div>
-                    <div className="text-left">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] bg-dpr-emerald dark:bg-dpr-red text-white font-bold px-2 py-0.5 rounded uppercase">SEDANG SIARAN</span>
-                        <span className="text-xs text-dpr-emerald-dark dark:text-dpr-gold font-bold">Ruang Komisi XIII</span>
-                      </div>
-                      <p className="text-xs text-slate-900 dark:text-white font-bold truncate max-w-md">
-                        {AGENDA_LIST.find((a) => a.status === "LIVE NOW")?.title}
-                      </p>
-                    </div>
+                  {/* Play button */}
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-dpr-emerald dark:bg-dpr-red flex items-center justify-center shrink-0">
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white ml-0.5 animate-pulse" />
                   </div>
+
+                  {/* Text — min-w-0 so truncate actually clips */}
+                  <div className="text-left min-w-0 flex-1 overflow-hidden">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                      <span className="text-[10px] bg-dpr-emerald dark:bg-dpr-red text-white font-bold px-2 py-0.5 rounded uppercase shrink-0">SEDANG SIARAN</span>
+                      <span className="text-[10px] sm:text-xs text-dpr-emerald-dark dark:text-dpr-gold font-bold truncate">Ruang Komisi XIII</span>
+                    </div>
+                    <p className="text-xs text-slate-900 dark:text-white font-bold truncate">
+                      {liveAgenda.title}
+                    </p>
+                  </div>
+
                   <ArrowRight className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold shrink-0" />
                 </div>
               )}
@@ -119,19 +130,19 @@ export default function HomePage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-100 dark:bg-dpr-navy-card p-4 rounded-2xl border border-slate-200 dark:border-white/10">
-                    <span className="text-2xl sm:text-3xl font-extrabold text-dpr-emerald-dark dark:text-dpr-gold block">{STATS.activeBills}</span>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-dpr-emerald-dark dark:text-dpr-gold block">{stats.activeBills}</span>
                     <span className="text-xs text-slate-800 dark:text-slate-300 font-semibold">RUU Prolegnas Prioritas</span>
                   </div>
                   <div className="bg-slate-100 dark:bg-dpr-navy-card p-4 rounded-2xl border border-slate-200 dark:border-white/10">
-                    <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white block">{STATS.completedHearings}+</span>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white block">{stats.completedHearings}+</span>
                     <span className="text-xs text-slate-800 dark:text-slate-300 font-semibold">RDP & Raker Selesai</span>
                   </div>
                 </div>
 
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between text-xs text-slate-900 dark:text-slate-300 font-medium">
-                    <span>Fokus Pengawasan HAM & Imigrasi</span>
-                    <span className="text-dpr-emerald-dark dark:text-dpr-gold font-bold">94% Target</span>
+                    <span>{hero.statuteProgressLabel}</span>
+                    <span className="text-dpr-emerald-dark dark:text-dpr-gold font-bold">{hero.statuteProgressValue}</span>
                   </div>
                   <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
                     <div className="bg-dpr-emerald dark:bg-gold-gradient h-full rounded-full w-[94%]" />
@@ -139,7 +150,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-dpr-red/25 border border-emerald-200 dark:border-dpr-red/40 text-xs text-slate-900 dark:text-slate-100 leading-relaxed italic">
-                  &quot;Menjamin kepastian hukum yang adil serta perlindungan hak asasi seluruh warga negara Indonesia tanpa diskriminasi.&quot;
+                  &quot;{hero.statuteQuote}&quot;
                 </div>
               </div>
             </motion.div>
@@ -152,20 +163,20 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="glass-panel rounded-3xl p-8 border border-slate-200 dark:border-white/10 grid grid-cols-2 md:grid-cols-4 gap-6 text-center shadow-xl">
           <div className="space-y-1">
-            <span className="text-3xl sm:text-4xl font-extrabold text-dpr-emerald-dark dark:text-dpr-gold">{STATS.totalMembers}</span>
-            <span className="text-xs text-slate-800 dark:text-slate-300 font-bold block uppercase tracking-wider">Anggota Parlemen</span>
+            <span className="text-3xl sm:text-4xl font-extrabold text-dpr-emerald-dark dark:text-dpr-gold">{stats.totalMembers}</span>
+            <span className="text-xs text-slate-800 dark:text-slate-300 font-bold block uppercase tracking-wider">{statBar.label1}</span>
           </div>
           <div className="space-y-1">
-            <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">{STATS.mitraKerjaCount}</span>
-            <span className="text-xs text-slate-800 dark:text-slate-300 font-bold block uppercase tracking-wider">Kementerian & Lembaga</span>
+            <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">{stats.mitraKerjaCount}</span>
+            <span className="text-xs text-slate-800 dark:text-slate-300 font-bold block uppercase tracking-wider">{statBar.label2}</span>
           </div>
           <div className="space-y-1">
-            <span className="text-3xl sm:text-4xl font-extrabold text-dpr-emerald-dark dark:text-dpr-gold">{STATS.completedHearings}+</span>
-            <span className="text-xs text-slate-800 dark:text-slate-300 font-bold block uppercase tracking-wider">Rapat Kemitraan</span>
+            <span className="text-3xl sm:text-4xl font-extrabold text-dpr-emerald-dark dark:text-dpr-gold">{stats.completedHearings}+</span>
+            <span className="text-xs text-slate-800 dark:text-slate-300 font-bold block uppercase tracking-wider">{statBar.label3}</span>
           </div>
           <div className="space-y-1">
-            <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">{STATS.aspirationsProcessed}</span>
-            <span className="text-xs text-slate-800 dark:text-slate-300 font-bold block uppercase tracking-wider">Aspirasi Diproses</span>
+            <span className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white">{stats.aspirationsProcessed}</span>
+            <span className="text-xs text-slate-800 dark:text-slate-300 font-bold block uppercase tracking-wider">{statBar.label4}</span>
           </div>
         </div>
       </section>
@@ -173,15 +184,15 @@ export default function HomePage() {
       {/* --- MITRA KERJA SHOWCASE --- */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="text-xs font-bold text-dpr-emerald-dark dark:text-dpr-gold uppercase tracking-widest">KEMITRAAN STRATEGIS</span>
-          <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white">Mitra Kerja Komisi XIII DPR RI</h2>
+          <span className="text-xs font-bold text-dpr-emerald-dark dark:text-dpr-gold uppercase tracking-widest">{mitraSection.tagline}</span>
+          <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white">{mitraSection.title}</h2>
           <p className="text-slate-800 dark:text-slate-300 text-xs sm:text-sm font-medium">
-            Komisi XIII melakukan pengawasan berkala dan pembagian alokasi anggaran bersama 8 Kementerian & Lembaga Negara Republik Indonesia.
+            {mitraSection.description}
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {MITRA_KERJA.map((mitra) => (
+          {mitraKerja.map((mitra) => (
             <motion.div
               key={mitra.id}
               whileHover={{ y: -5 }}
@@ -212,9 +223,9 @@ export default function HomePage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
           <div>
-            <span className="text-xs font-bold text-dpr-emerald-dark dark:text-dpr-gold uppercase tracking-widest">INFORMASI TERKINI</span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Berita & Siaran Pers Komisi XIII</h2>
-          </div>
+          <span className="text-xs font-bold text-dpr-emerald-dark dark:text-dpr-gold uppercase tracking-widest">INFORMASI TERKINI</span>
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Berita & Siaran Pers Komisi XIII</h2>
+        </div>
           <Link href="/berita" className="text-xs text-dpr-emerald-dark dark:text-dpr-gold font-bold hover:underline flex items-center gap-1">
             <span>Lihat Semua Berita</span>
             <ArrowRight className="w-4 h-4" />
@@ -222,7 +233,7 @@ export default function HomePage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {BERITA_LIST.slice(0, 3).map((article) => (
+          {berita.slice(0, 3).map((article) => (
             <div
               key={article.id}
               onClick={() => setSelectedNews(article)}
@@ -265,7 +276,7 @@ export default function HomePage() {
             Lokasi & Media Sosial Resmi <span className="text-dpr-emerald dark:text-dpr-gold">Komisi XIII DPR RI</span>
           </h2>
           <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed">
-            Gedung Nusantara II, Kompleks Parlemen DPR/MPR RI, Jl. Jend. Gatot Subroto, Senayan, Jakarta Pusat.
+            {maps.description}
           </p>
         </div>
 
@@ -275,7 +286,7 @@ export default function HomePage() {
           <div className="lg:col-span-7 glass-panel rounded-3xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-xl min-h-[350px] lg:min-h-[440px] relative flex flex-col justify-between">
             <div className="absolute top-4 left-4 z-10">
               <a
-                href="https://maps.google.com"
+                href={maps.openUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="bg-white text-blue-600 text-[13px] font-semibold px-3 py-2 rounded shadow-sm border border-slate-200 flex items-center gap-1.5 hover:bg-slate-50 transition-colors"
@@ -287,7 +298,7 @@ export default function HomePage() {
 
             <iframe
               title="Lokasi Komisi XIII DPR RI"
-              src="https://maps.google.com/maps?q=Gedung+Nusantara+II+DPR+RI&t=&z=15&ie=UTF8&iwloc=&output=embed"
+              src={maps.embedUrl}
               width="100%"
               height="100%"
               style={{ border: 0 }}
@@ -303,9 +314,9 @@ export default function HomePage() {
             
             {/* CARD LOKASI & JAM AKTIF */}
             <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-white/10 space-y-4 bg-white/80 dark:bg-slate-900/80 shadow-lg">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-3">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-3">
                 <Building2 className="w-5 h-5 text-dpr-emerald dark:text-dpr-gold" />
-                <span>Informasi Jam Layanan</span>
+                <span>{kontak.serviceTitle}</span>
               </h3>
 
               <div className="space-y-3 text-xs sm:text-sm">
@@ -313,7 +324,7 @@ export default function HomePage() {
                   <Clock className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-slate-800 dark:text-slate-200 block">Jam Operasional Layanan Publik</span>
-                    <p className="text-slate-600 dark:text-slate-400 text-xs">Senin & Kamis: 14.00 – 17.00 WIB (Ruang Sekretariat)</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-xs">{kontak.serviceHours}</p>
                   </div>
                 </div>
 
@@ -321,8 +332,8 @@ export default function HomePage() {
                   <Mail className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-slate-800 dark:text-slate-200 block">Email Resmi Sekretariat</span>
-                    <a href="mailto:komisi13@dpr.go.id" className="text-blue-600 dark:text-blue-400 font-bold hover:underline text-xs">
-                      komisi13@dpr.go.id
+                    <a href={`mailto:${kontak.email}`} className="text-blue-600 dark:text-blue-400 font-bold hover:underline text-xs">
+                      {kontak.email}
                     </a>
                   </div>
                 </div>
@@ -333,7 +344,7 @@ export default function HomePage() {
             <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-white/10 space-y-4 bg-white/80 dark:bg-slate-900/80 shadow-lg">
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-200 dark:border-white/10 pb-3">
                 <Share2 className="w-5 h-5 text-dpr-emerald dark:text-dpr-gold" />
-                <span>Akun Media Sosial Resmi</span>
+                <span>{kontak.mediaTitle}</span>
               </h3>
 
               <div className="grid grid-cols-2 gap-3">
@@ -348,7 +359,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-900 dark:text-white block group-hover:text-pink-600 transition-colors">Instagram</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">@komisi13dpr</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">{kontak.instagramHandle}</span>
                   </div>
                 </a>
 
@@ -363,7 +374,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-900 dark:text-white block group-hover:text-red-600 transition-colors">YouTube</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">DPR RI Official</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">{kontak.youtubeLabel}</span>
                   </div>
                 </a>
 
@@ -378,7 +389,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-900 dark:text-white block group-hover:text-blue-500 transition-colors">X (Twitter)</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">@DPR_RI</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">{kontak.twitterHandle}</span>
                   </div>
                 </a>
 
@@ -393,7 +404,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-900 dark:text-white block group-hover:text-emerald-600 transition-colors">Website DPR</span>
-                    <span className="text-[10px] text-slate-500 dark:text-slate-400">dpr.go.id</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">{kontak.websiteLabel}</span>
                   </div>
                 </a>
               </div>
@@ -402,14 +413,14 @@ export default function HomePage() {
             {/* BANNER LAYANAN ASPIRASI KHUSUS */}
             <div className="p-5 rounded-3xl bg-gradient-to-r from-dpr-emerald to-emerald-700 dark:from-dpr-red dark:to-red-900 text-white shadow-xl flex items-center justify-between gap-4">
               <div className="space-y-1">
-                <h4 className="text-sm font-black uppercase tracking-wide">Punya Aspirasi Rakyat?</h4>
-                <p className="text-xs opacity-90">Sampaikan aduan & masukan Anda di Halaman Khusus Aspirasi.</p>
+                <h4 className="text-sm font-black uppercase tracking-wide">{kontak.aspirasiTitle}</h4>
+                <p className="text-xs opacity-90">{kontak.aspirasiDesc}</p>
               </div>
               <Link
                 href="/aspirasi"
                 className="bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs px-4 py-2.5 rounded-full shadow-md shrink-0 flex items-center gap-1.5 transition-transform hover:scale-105"
               >
-                <span>Form Aspirasi</span>
+                <span>{kontak.aspirasiCta}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>

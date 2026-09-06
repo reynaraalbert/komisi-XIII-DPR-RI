@@ -1,21 +1,22 @@
 "use client";
 
 import React, { useState } from "react";
-import { ANGGOTA_KOMISI, PIMPINAN_KOMISI } from "@/lib/data";
+import { useCmsContent } from "@/components/CmsProvider";
 import MemberCard from "@/components/MemberCard";
 import { Search, Users, Award, Shield, Filter } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function MembersPage() {
+  const { anggota, pimpinan } = useCmsContent();
   const [selectedDapil, setSelectedDapil] = useState<string>("Semua");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const dapilList = [
     "Semua",
-    ...Array.from(new Set(ANGGOTA_KOMISI.map(m => m.dapil)))
+    ...Array.from(new Set(anggota.map(m => m.dapil)))
   ];
 
-  const filteredMembers = ANGGOTA_KOMISI.filter((member) => {
+  const filteredMembers = anggota.filter((member) => {
     const matchesDapil = selectedDapil === "Semua" || member.dapil === selectedDapil;
     const matchesSearch =
       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -37,30 +38,19 @@ export default function MembersPage() {
           Daftar <span className="text-dpr-emerald dark:text-red-600">Anggota Komisi XIII</span>
         </h1>
         <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
-          Sebanyak {ANGGOTA_KOMISI.length} Anggota DPR RI Fraksi Partai Golkar ditugaskan mengawal fungsi legislasi, anggaran, dan pengawasan sektor Hukum, HAM, Imigrasi, dan Antikorupsi.
+          Sebanyak {anggota.length} Anggota DPR RI Fraksi Partai Golkar ditugaskan mengawal fungsi legislasi, anggaran, dan pengawasan sektor Hukum, HAM, Imigrasi, dan Antikorupsi.
         </p>
       </div>
 
-      {/* Leadership Tier Banner */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-2.5 text-slate-900 dark:text-white font-bold text-lg border-b border-slate-200 dark:border-white/10 pb-3">
-          <Award className="w-5 h-5 text-dpr-emerald dark:text-dpr-gold" />
-          <span>Pimpinan Komisi XIII DPR RI</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          {PIMPINAN_KOMISI.map((pimpinan) => (
-            <MemberCard key={pimpinan.id} member={pimpinan} />
-          ))}
-        </div>
-      </div>
-
-      {/* Filter & Search Bar */}
-      <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-white/10 space-y-6">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm">
-            <Filter className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
-            <span>Filter Berdasarkan Daerah Pemilihan</span>
+      {/* Filter & Search Bar — Placed at the top for instant mobile & desktop access */}
+      <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-slate-200 dark:border-white/10 space-y-4 sm:space-y-5">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-xs sm:text-sm">
+              <Filter className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold shrink-0" />
+              <span>Filter Berdasarkan Daerah Pemilihan</span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-normal sm:hidden">← Geser dapil →</span>
           </div>
 
           <div className="relative w-full md:w-80">
@@ -75,17 +65,17 @@ export default function MembersPage() {
           </div>
         </div>
 
-        {/* Dapil Filter Pills */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200 dark:border-white/5">
+        {/* Dapil Filter Pills — Horizontal Scroll without wrapping */}
+        <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-white/10 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap pb-1 -mx-1 px-1">
           {dapilList.map((dapil) => {
             const isActive = selectedDapil === dapil;
             return (
               <button
                 key={dapil}
                 onClick={() => setSelectedDapil(dapil)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${
                   isActive
-                    ? "bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold shadow-md"
+                    ? "bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold shadow-md scale-105"
                     : "bg-slate-100 dark:bg-dpr-navy text-slate-700 dark:text-slate-300 hover:text-dpr-emerald dark:hover:text-white border border-slate-200 dark:border-white/10"
                 }`}
               >
@@ -93,6 +83,20 @@ export default function MembersPage() {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Leadership Tier Banner */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2.5 text-slate-900 dark:text-white font-bold text-lg border-b border-slate-200 dark:border-white/10 pb-3">
+          <Award className="w-5 h-5 text-dpr-emerald dark:text-dpr-gold" />
+          <span>Pimpinan Komisi XIII DPR RI</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+          {pimpinan.map((pimpinan) => (
+            <MemberCard key={pimpinan.id} member={pimpinan} />
+          ))}
         </div>
       </div>
 

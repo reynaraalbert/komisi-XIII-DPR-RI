@@ -13,21 +13,26 @@ export default function Ticker() {
   ];
 
   return (
-    <div className="bg-slate-900 dark:bg-red-600 border-b border-slate-800 dark:border-white/10 text-xs py-2 px-4 overflow-hidden relative z-50 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto flex items-center gap-3">
-        <div className="flex items-center gap-1.5 bg-dpr-emerald dark:bg-dpr-red text-white font-bold px-2.5 py-1 rounded text-[11px] tracking-wider uppercase shrink-0 shadow-sm">
-          <Megaphone className="w-3.5 h-3.5 animate-bounce" />
-          <span>SIARAN PARLEMEN</span>
+    <div className="bg-slate-900 dark:bg-red-600 border-b border-slate-800 dark:border-white/10 text-xs py-2 px-3 sm:px-4 overflow-hidden relative z-50 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Badge — never shrinks */}
+        <div className="flex items-center gap-1 sm:gap-1.5 bg-dpr-emerald dark:bg-dpr-red text-white font-bold px-2 sm:px-2.5 py-1 rounded text-[10px] sm:text-[11px] tracking-wider uppercase shrink-0 shadow-sm">
+          <Megaphone className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-bounce shrink-0" />
+          <span className="hidden xs:inline">SIARAN PARLEMEN</span>
+          <span className="xs:hidden">LIVE</span>
         </div>
 
-        <div className="overflow-hidden whitespace-nowrap relative flex-1">
-          <div className="inline-block animate-ticker">
-            {announcements.map((text, idx) => (
-              <span key={idx} className="inline-flex items-center gap-2 mx-6 text-slate-200 dark:text-slate-300 font-medium hover:text-dpr-gold transition-colors">
-                <span>{text}</span>
-                <span className="text-dpr-gold/40">•</span>
-              </span>
-            ))}
+        {/* Ticker text — takes remaining space, clips overflow */}
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="overflow-hidden whitespace-nowrap w-full">
+            <div className="inline-block animate-ticker">
+              {announcements.map((text, idx) => (
+                <span key={idx} className="inline-flex items-center gap-2 mx-4 sm:mx-6 text-slate-200 dark:text-slate-300 font-medium">
+                  <span>{text}</span>
+                  <span className="text-dpr-gold/40">•</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 

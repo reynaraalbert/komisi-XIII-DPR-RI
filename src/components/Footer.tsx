@@ -3,23 +3,25 @@
 
 import React from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { Shield, Phone, Mail, MapPin, ExternalLink, Globe, Scale } from "lucide-react";
+import { Phone, Mail, MapPin, ExternalLink, Globe, Scale } from "lucide-react";
+import { useCmsContent } from "@/components/CmsProvider";
 
 export default function Footer() {
+  const { siteContent } = useCmsContent();
+  const footer = siteContent.footer;
+
   return (
     <footer className="bg-slate-900 dark:bg-[#050A14] text-slate-300 dark:text-slate-400 border-t border-slate-700 dark:border-white/10 relative overflow-hidden transition-colors duration-300">
       {/* Background Glow Overlay */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-px bg-gradient-to-r from-transparent via-dpr-emerald dark:via-dpr-gold to-transparent opacity-40" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          
-          {/* Brand & Address */}
-          <div className="space-y-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-10">
+
+          {/* Brand & Address — full width on mobile */}
+          <div className="col-span-2 lg:col-span-1 space-y-4">
             <div className="flex items-center gap-3.5">
               <div className="h-14 w-auto shrink-0 flex items-center justify-center">
-                {/* eslint-disable-next-html-element-for-svg */}
                 <img
                   src="/images/logo-dpr.svg"
                   alt="Lambang DPR RI"
@@ -38,27 +40,28 @@ export default function Footer() {
             </div>
 
             <p className="text-xs leading-relaxed text-slate-300">
-              Komisi XIII DPR RI membidangi Reformasi Hukum, Hak Asasi Manusia (HAM), Keimigrasian, Pemasyarakatan, Antikorupsi, dan Kepegawaian Negara.
+              {footer.brandDescription}
             </p>
 
-            <div className="space-y-2 text-xs pt-2">
+            {/* Contact info for desktop only (Column 1) */}
+            <div className="hidden lg:block space-y-2 text-xs pt-2">
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-dpr-gold shrink-0 mt-0.5" />
-                <span>Gedung Nusantara II Lantai 1, Jl. Jend. Gatot Subroto, Jakarta Pusat 10270</span>
+                <span>{footer.address}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-dpr-gold shrink-0" />
-                <span>(021) 5715-341 / Ext. 1300</span>
+                <span>{footer.phone}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-dpr-gold shrink-0" />
-                <span>set_komisi13@dpr.go.id</span>
+                <span>{footer.email}</span>
               </div>
             </div>
           </div>
 
-          {/* Quick Navigation */}
-          <div>
+          {/* Quick Navigation — col 1 on mobile */}
+          <div className="col-span-1">
             <h4 className="text-white font-semibold text-sm mb-4 pb-2 border-b border-slate-700 dark:border-white/10 flex items-center gap-2">
               <Scale className="w-4 h-4 text-dpr-gold" />
               <span>Navigasi Portal</span>
@@ -92,8 +95,8 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Working Partners */}
-          <div>
+          {/* Working Partners — col 2 on mobile */}
+          <div className="col-span-1">
             <h4 className="text-white font-semibold text-sm mb-4 pb-2 border-b border-slate-700 dark:border-white/10 flex items-center gap-2">
               <Globe className="w-4 h-4 text-dpr-gold" />
               <span>Mitra Kerja Komisi XIII</span>
@@ -126,25 +129,42 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Public Transparency Statement */}
-          <div className="space-y-4">
+          {/* Public Transparency Statement & Contact Info — full width on mobile */}
+          <div className="col-span-2 lg:col-span-1 space-y-4">
             <h4 className="text-white font-semibold text-sm pb-2 border-b border-slate-700 dark:border-white/10">
               Keterbukaan Informasi
             </h4>
             <p className="text-xs leading-relaxed text-slate-300 dark:text-slate-400">
-              Setiap hasil risalah rapat, draf rancangan undang-undang, serta risalah pengawasan Komisi XIII DPR RI bersifat terbuka dan dapat diakses oleh publik sesuai UU No. 14 Tahun 2008 tentang Keterbukaan Informasi Publik.
+              {footer.transparencyText}
             </p>
             <div className="p-3 rounded-xl bg-slate-800 dark:bg-dpr-navy-card border border-dpr-gold/20 text-[11px] text-slate-300">
               <span className="font-semibold text-dpr-gold block mb-0.5">Layanan Informasi PPID:</span>
-              Jam Kerja: Senin - Jumat (08:00 - 16:00 WIB)
+              {footer.ppidText}
+            </div>
+
+            {/* Kontak & Sekretariat — Placed BELOW Keterbukaan Informasi on Mobile only */}
+            <div className="block lg:hidden space-y-2 text-xs pt-3 border-t border-slate-700/80 dark:border-white/10 mt-3">
+              <h5 className="text-white font-bold text-xs mb-1">Kontak & Sekretariat</h5>
+              <div className="flex items-start gap-2.5">
+                <MapPin className="w-4 h-4 text-dpr-gold shrink-0 mt-0.5" />
+                <span>{footer.address}</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Phone className="w-4 h-4 text-dpr-gold shrink-0" />
+                <span>{footer.phone}</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Mail className="w-4 h-4 text-dpr-gold shrink-0" />
+                <span>{footer.email}</span>
+              </div>
             </div>
           </div>
 
         </div>
 
         {/* Bottom copyright line */}
-        <div className="mt-12 pt-6 border-t border-slate-800 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400 dark:text-slate-500">
-          <p>© 2026 Golkar Internship Student. Hak Cipta Dilindungi Undang-Undang.</p>
+        <div className="mt-8 sm:mt-12 pt-5 sm:pt-6 border-t border-slate-800 dark:border-white/10 flex flex-row items-center justify-between gap-3 flex-wrap text-xs text-slate-400 dark:text-slate-500">
+          <p>{footer.copyrightText}</p>
           <div className="flex items-center gap-6">
             <Link href="/kebijakan-privasi" className="hover:text-dpr-gold transition-colors">Kebijakan Privasi</Link>
             <Link href="/syarat-penggunaan" className="hover:text-dpr-gold transition-colors">Syarat Penggunaan</Link>

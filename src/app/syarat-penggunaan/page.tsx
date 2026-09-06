@@ -105,7 +105,7 @@ export default function SyaratPenggunaanPage() {
       </div>
 
       <div className="glass-panel p-6 rounded-2xl border border-dpr-emerald/30 dark:border-dpr-gold/30 bg-dpr-emerald/5 dark:bg-dpr-gold/5 text-sm text-slate-700 dark:text-slate-300">
-        <strong className="text-dpr-emerald-dark dark:text-dpr-gold">Pertanyaan Hukum:</strong> Apabila Anda memiliki pertanyaan terkait Syarat Penggunaan ini, silakan hubungi kami di <a href="mailto:set_komisi13@dpr.go.id" className="underline font-semibold text-dpr-emerald dark:text-dpr-gold">set_komisi13@dpr.go.id</a>. Dokumen ini tunduk pada hukum yang berlaku di Negara Kesatuan Republik Indonesia.
+        <strong className="text-dpr-emerald-dark dark:text-dpr-gold">Pertanyaan Hukum:</strong> Apabila Anda memiliki pertanyaan terkait Syarat Penggunaan ini, silakan hubungi kami di <a href="mailto:golkarinternshipstudent@gmail.com" className="underline font-semibold text-dpr-emerald dark:text-dpr-gold">golkarinternshipstudent@gmail.com</a>. Dokumen ini tunduk pada hukum yang berlaku di Negara Kesatuan Republik Indonesia.
       </div>
     </div>
   );

@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Handshake, ChevronRight, Building2, ExternalLink, Phone, Globe, Users, Tag } from "lucide-react";
+import { Handshake, ChevronRight, ChevronLeft, Building2, ExternalLink, Phone, Globe, Users, Tag } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { MITRA_KERJA } from "@/lib/data";
+import { useCmsContent } from "@/components/CmsProvider";
 
 const mitraDetail = [
   { id: "mitra-1", phone: "(021) 526-4091", website: "kemenkumham.go.id", programUtama: ["Harmonisasi Regulasi Nasional", "Pelayanan Kekayaan Intelektual Online", "Administrasi Hukum Umum (AHU)"], keterangan: "Kementerian Hukum merupakan mitra kerja utama Komisi XIII dalam proses legislasi dan harmonisasi regulasi. Komisi XIII secara rutin menggelar Raker bulanan untuk mengawasi progres pembentukan RUU dan program kerja Kemenkum." },
@@ -18,6 +18,14 @@ const mitraDetail = [
 ];
 
 export default function MitraKerjaPage() {
+  const { mitraKerja, pages } = useCmsContent();
+  const page = pages.find((p) => p.slug === "profil/mitra-kerja");
+  const headerSub = page?.sections.find((s) => s.title === "Header Halaman Mitra Kerja")?.subsections[0]?.fields || {};
+
+  const badge = headerSub.badge || "PROFIL KOMISI XIII — MITRA KERJA";
+  const judul = headerSub.judul || "Daftar Mitra Kerja Komisi XIII";
+  const deskripsi = headerSub.deskripsi || "8 Kementerian dan Lembaga Negara yang menjadi mitra strategis Komisi XIII DPR RI dalam pelaksanaan fungsi legislasi, anggaran, dan pengawasan.";
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
 
@@ -25,13 +33,13 @@ export default function MitraKerjaPage() {
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-dpr-emerald/10 dark:bg-dpr-gold/10 border border-dpr-emerald/30 dark:border-dpr-gold/30 text-dpr-emerald-dark dark:text-dpr-gold text-xs font-bold">
           <Handshake className="w-4 h-4" />
-          <span>PROFIL KOMISI XIII — MITRA KERJA</span>
+          <span>{badge}</span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white leading-tight">
-          Daftar Mitra Kerja <span className="text-dpr-emerald dark:text-dpr-gold">Komisi XIII</span>
+          <span className="text-dpr-emerald dark:text-dpr-gold">{judul}</span>
         </h1>
         <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-          8 Kementerian dan Lembaga Negara yang menjadi mitra strategis Komisi XIII DPR RI dalam pelaksanaan fungsi legislasi, anggaran, dan pengawasan.
+          {deskripsi}
         </p>
       </div>
 
@@ -52,7 +60,7 @@ export default function MitraKerjaPage() {
 
       {/* Mitra Cards */}
       <div className="space-y-6">
-        {MITRA_KERJA.map((mitra, i) => {
+        {mitraKerja.map((mitra, i) => {
           const detail = mitraDetail.find(d => d.id === mitra.id);
           return (
             <motion.div
@@ -87,7 +95,7 @@ export default function MitraKerjaPage() {
 
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Deskripsi Mitra</p>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{mitra.description}</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed text-justify">{mitra.description}</p>
                   </div>
 
                   {detail && (
@@ -96,7 +104,7 @@ export default function MitraKerjaPage() {
                         <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
                           <Building2 className="w-3 h-3" /> Catatan Pengawasan Komisi XIII
                         </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{detail.keterangan}</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed text-justify">{detail.keterangan}</p>
                       </div>
 
                       <div className="space-y-2">
@@ -132,14 +140,25 @@ export default function MitraKerjaPage() {
         })}
       </div>
 
-      {/* Navigation */}
-      <div className="flex flex-wrap gap-3 pt-6 border-t border-slate-200 dark:border-white/10">
-        <Link href="/profil/pimpinan" className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm px-5 py-2.5 rounded-full border border-slate-300 dark:border-white/10 hover:border-dpr-emerald dark:hover:border-dpr-gold transition-all">
-          ← Pimpinan & Anggota
-        </Link>
-        <Link href="/profil/sejarah" className="inline-flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-sm px-5 py-2.5 rounded-full shadow-md hover:opacity-90 transition-all">
-          Ke Halaman Sejarah <ChevronRight className="w-4 h-4" />
-        </Link>
+      {/* Navigation — 2 Buttons side-by-side */}
+      <div className="pt-6 border-t border-slate-200 dark:border-white/10">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
+          <Link
+            href="/profil/pimpinan"
+            className="flex items-center justify-center gap-1 sm:gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm px-2.5 sm:px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-dpr-emerald dark:hover:border-dpr-gold transition-all text-center group min-w-0"
+          >
+            <ChevronLeft className="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform text-dpr-emerald dark:text-dpr-gold" />
+            <span className="truncate">Pimpinan & Anggota</span>
+          </Link>
+
+          <Link
+            href="/profil/sejarah"
+            className="flex items-center justify-center gap-1 sm:gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs sm:text-sm px-2.5 sm:px-5 py-3 rounded-2xl shadow-md hover:opacity-90 transition-all text-center group min-w-0"
+          >
+            <span className="truncate">Sejarah Komisi</span>
+            <ChevronRight className="w-4 h-4 shrink-0 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        </div>
       </div>
     </div>
   );

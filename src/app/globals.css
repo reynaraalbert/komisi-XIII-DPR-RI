@@ -180,3 +180,12 @@ html:not(.dark) .batik-bg {
   background-image: radial-gradient(rgba(6, 95, 70, 0.05) 1px, transparent 0);
   background-size: 24px 24px;
 }
+
+/* Hide scrollbar for clean horizontal scrolling */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
