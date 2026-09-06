@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { INITIAL_BERITA, INITIAL_AGENDA, INITIAL_MEMBERS, INITIAL_MITRA, INITIAL_ASPIRASI, STATS } from "../src/lib/data";
+import { BERITA_LIST, AGENDA_LIST, ANGGOTA_KOMISI, PIMPINAN_KOMISI, MITRA_KERJA, STATS } from "../src/lib/data";
 import { PAGES } from "../src/lib/pages";
 
 const prisma = new PrismaClient();
@@ -9,7 +9,7 @@ async function main() {
 
   // 1. Seed Berita
   console.log("Seeding Berita...");
-  for (const item of INITIAL_BERITA) {
+  for (const item of BERITA_LIST) {
     await prisma.newsArticle.upsert({
       where: { slug: item.slug },
       update: {},
@@ -32,7 +32,7 @@ async function main() {
 
   // 2. Seed Agenda
   console.log("Seeding Agenda...");
-  for (const item of INITIAL_AGENDA) {
+  for (const item of AGENDA_LIST) {
     await prisma.agendaItem.upsert({
       where: { id: item.id },
       update: {},
@@ -52,9 +52,9 @@ async function main() {
     });
   }
 
-  // 3. Seed Anggota
-  console.log("Seeding Anggota...");
-  for (const item of INITIAL_MEMBERS) {
+  // 3. Seed Anggota & Pimpinan
+  console.log("Seeding Anggota & Pimpinan...");
+  for (const item of [...PIMPINAN_KOMISI, ...ANGGOTA_KOMISI]) {
     await prisma.member.upsert({
       where: { id: item.id },
       update: {},
@@ -78,7 +78,7 @@ async function main() {
 
   // 4. Seed Mitra Kerja
   console.log("Seeding Mitra Kerja...");
-  for (const item of INITIAL_MITRA) {
+  for (const item of MITRA_KERJA) {
     await prisma.mitraKerja.upsert({
       where: { id: item.id },
       update: {},
@@ -90,27 +90,6 @@ async function main() {
         focusArea: item.focusArea,
         logoUrl: item.logoUrl,
         description: item.description,
-      },
-    });
-  }
-
-  // 5. Seed Aspirasi
-  console.log("Seeding Aspirasi...");
-  for (const item of INITIAL_ASPIRASI) {
-    await prisma.aspirasi.upsert({
-      where: { id: item.id },
-      update: {},
-      create: {
-        id: item.id,
-        mode: item.mode,
-        name: item.name || null,
-        email: item.email || null,
-        whatsapp: item.whatsapp || null,
-        subject: item.subject,
-        message: item.message,
-        category: item.category,
-        status: item.status,
-        createdAt: item.createdAt,
       },
     });
   }

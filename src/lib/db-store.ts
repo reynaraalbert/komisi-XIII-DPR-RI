@@ -41,7 +41,7 @@ export async function readDbCollection<K extends keyof CmsData>(key: K): Promise
       case "pages": {
         const rows = await prisma.pageContent.findMany();
         if (rows.length === 0) return null;
-        return rows.map((r) => ({
+        return rows.map((r: { id: string; slug: string; title: string; sections: any }) => ({
           id: r.id,
           slug: r.slug,
           title: r.title,
