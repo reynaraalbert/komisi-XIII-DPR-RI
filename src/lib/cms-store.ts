@@ -74,48 +74,70 @@ export function readCollection<K extends keyof CmsData>(key: K): CmsData[K] {
   const all = seed();
   const fallback = all[key];
 
-  if (scope === "browser") {
-    return (memoryCache[key] as CmsData[K]) ?? fallback;
+  if (memoryCache[key] !== undefined) {
+    return memoryCache[key] as CmsData[K];
   }
 
-  const file = filePathFor(key);
-  if (fs.existsSync(file)) {
-    try {
+  if (scope === "browser") {
+    return fallback;
+  }
+
+  try {
+    const file = filePathFor(key);
+    if (fs.existsSync(file)) {
       const raw = fs.readFileSync(file, "utf-8");
       const parsed = JSON.parse(raw);
       memoryCache[key] = parsed;
       return parsed as CmsData[K];
-    } catch (e) {
-      // Corrupt file → fall back to default.
-      return fallback;
     }
+  } catch (e) {
+    // Corrupt or read error → fall back to default.
   }
-  // First run → persist the seeded default so the file exists on disk.
+
+  // First run → attempt to write seeded default if filesystem is writable
   try {
+    const file = filePathFor(key);
     fs.writeFileSync(file, JSON.stringify(fallback, null, 2), "utf-8");
   } catch (e) {
-    // ignore write errors
+    // Ignore write errors on read-only serverless environments (Vercel)
   }
   memoryCache[key] = fallback;
   return fallback;
 }
 
 /**
- * Write a whole collection to disk.
+ * Write a whole collection to disk (or memory cache if read-only filesystem).
  */
 export function writeCollection<K extends keyof CmsData>(key: K, value: CmsData[K]): void {
   memoryCache[key] = value;
-  const file = filePathFor(key);
-  const dir = path.dirname(file);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  try {
+    const file = filePathFor(key);
+    const dir = path.dirname(file);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(file, JSON.stringify(value, null, 2), "utf-8");
+  } catch (err) {
+    // Safe fallback for Vercel / serverless platforms where filesystem is read-only
+    console.warn(`[CMS Store] Saved to memory cache (read-only filesystem on Vercel): ${key}`);
   }
-  fs.writeFileSync(file, JSON.stringify(value, null, 2), "utf-8");
 }
 
 /**
  * Read the entire CMS dataset (used by dashboard + bulk endpoints).
+ * Reads each collection from disk so edits are reflected immediately.
  */
 export function readAllCms(): CmsData {
-  return seed();
+  return {
+    stats: readCollection("stats"),
+    anggota: readCollection("anggota"),
+    pimpinan: readCollection("pimpinan"),
+    mitraKerja: readCollection("mitraKerja"),
+    berita: readCollection("berita"),
+    agenda: readCollection("agenda"),
+    siteContent: readCollection("siteContent"),
+    submissions: readCollection("submissions"),
+    aspirasi: readCollection("aspirasi"),
+    pages: readCollection("pages"),
+  };
 }

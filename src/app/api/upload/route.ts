@@ -1,97 +1,77 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
-const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
-const API_KEY = process.env.CLOUDINARY_API_KEY || "";
-const API_SECRET = process.env.CLOUDINARY_API_SECRET || "";
+/**
+ * Upload endpoint — receives a file, converts it to a base64 data-URL,
+ * and returns the data-URL as the `url` field.
+ *
+ * This approach stores images as text in the database (Supabase/JSON) so no
+ * external CDN (e.g. Cloudinary) is needed. Images are automatically compressed
+ * by the client (FileUpload.tsx) before being sent here, keeping sizes small.
+ *
+ * Max payload: 4 MB (Next.js default), matching our ~2 MB image cap.
+ */
 
 const ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/gif",
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
-const MAX_SIZE = 10 * 1024 * 1024;
+
+const MAX_SIZE = 5 * 1024 * 1024; // 5 MB hard limit
 
 export async function POST(req: NextRequest) {
-  if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
+  // Upload endpoint is protected — only logged-in admins may use it.
+  // (FileUpload.tsx calls this directly from admin pages.)
+  if (!requireAuth(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch {
+    return NextResponse.json({ error: "Invalid form data" }, { status: 400 });
+  }
+
+  const file = formData.get("file") as File | null;
+  if (!file) {
+    return NextResponse.json({ error: "No file provided" }, { status: 400 });
+  }
+
+  if (!ALLOWED_TYPES.includes(file.type)) {
     return NextResponse.json(
-      { error: "Cloudinary not configured. Set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in .env.local" },
-      { status: 500 }
+      { error: `Tipe file tidak diizinkan: ${file.type}` },
+      { status: 400 }
+    );
+  }
+
+  if (file.size > MAX_SIZE) {
+    return NextResponse.json(
+      { error: `File terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maks. ${(MAX_SIZE / 1024 / 1024).toFixed(0)} MB.` },
+      { status: 400 }
     );
   }
 
   try {
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
-
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: `File type not allowed: ${file.type}. Allowed: images (jpg/png/webp), PDF, DOCX, XLSX` },
-        { status: 400 }
-      );
-    }
-
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json(
-        { error: `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Max: 10MB` },
-        { status: 400 }
-      );
-    }
-
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const timestamp = Math.round(Date.now() / 1000);
-    const folder = file.type.startsWith("image/") ? "komisi-xiii/images" : "komisi-xiii/documents";
-    const publicId = `${folder}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-
-    const signature = generateSignature(timestamp, publicId, API_SECRET);
-
-    const uploadForm = new FormData();
-    uploadForm.append("file", new Blob([buffer], { type: file.type }), file.name);
-    uploadForm.append("api_key", API_KEY);
-    uploadForm.append("timestamp", String(timestamp));
-    uploadForm.append("public_id", publicId);
-    uploadForm.append("signature", signature);
-
-    const uploadRes = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`,
-      { method: "POST", body: uploadForm }
-    );
-
-    const result = await uploadRes.json();
-
-    if (!uploadRes.ok) {
-      return NextResponse.json(
-        { error: result.error?.message || "Upload failed" },
-        { status: 500 }
-      );
-    }
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const base64 = buffer.toString("base64");
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
     return NextResponse.json({
-      url: result.secure_url,
-      publicId: result.public_id,
-      width: result.width,
-      height: result.height,
-      format: result.format,
-      bytes: result.bytes,
+      url: dataUrl,
+      type: file.type,
+      sizeBytes: file.size,
     });
-  } catch (err) {
-    return NextResponse.json({ error: "Upload error" }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Gagal memproses file" }, { status: 500 });
   }
-}
-
-function generateSignature(timestamp: number, publicId: string, apiSecret: string): string {
-  const crypto = require("crypto");
-  const str = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
-  return crypto.createHash("sha1").update(str).digest("hex");
 }

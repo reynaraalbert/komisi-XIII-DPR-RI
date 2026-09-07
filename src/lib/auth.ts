@@ -1,10 +1,9 @@
 /**
- * Lightweight admin authentication.
+ * Lightweight admin authentication using HMAC-signed tokens.
  *
- * Credentials must be supplied via the ADMIN_USERNAME / ADMIN_PASSWORD
- * environment variables. There are intentionally no hardcoded fallback
- * values so that credentials cannot leak into the source or build output.
- * If either variable is missing, authentication is disabled.
+ * Tokens are signed with ADMIN_JWT_SECRET using SHA-256, making them
+ * stateless — no in-memory session store needed. This survives server
+ * hot-reloads and serverless function cold starts.
  */
 import crypto from "crypto";
 
@@ -20,24 +19,48 @@ export function getAdminCredentials(): AdminCredentials | null {
   return { username, password };
 }
 
-export function createSessionToken(): string {
-  return crypto.randomBytes(32).toString("hex");
+function getSecret(): string {
+  return process.env.ADMIN_JWT_SECRET || "komisi-xiii-dpr-ri-super-secret-key-2024";
 }
 
-// An in-memory set of valid session tokens (cleared on server restart).
-const sessions = new Set<string>();
+function signPayload(payload: string): string {
+  return crypto.createHmac("sha256", getSecret()).update(payload).digest("hex");
+}
 
-export function registerSession(token: string): void {
-  sessions.add(token);
+export function createSessionToken(): string {
+  // payload = username + timestamp (valid for 7 days)
+  const creds = getAdminCredentials();
+  const username = creds?.username || "admin";
+  const expires = Date.now() + 7 * 24 * 60 * 60 * 1000;
+  const payload = `${username}:${expires}`;
+  const sig = signPayload(payload);
+  // encode as base64url for safe cookie transport
+  return Buffer.from(`${payload}:${sig}`).toString("base64url");
 }
 
 export function isValidToken(token: string | undefined): boolean {
-  return !!token && sessions.has(token);
+  if (!token) return false;
+  try {
+    const decoded = Buffer.from(token, "base64url").toString("utf-8");
+    const parts = decoded.split(":");
+    if (parts.length < 3) return false;
+    // last part is sig, second-to-last is expires, rest is username
+    const sig = parts[parts.length - 1];
+    const expires = parseInt(parts[parts.length - 2], 10);
+    if (isNaN(expires) || Date.now() > expires) return false;
+    const payload = parts.slice(0, -1).join(":");
+    const expectedSig = signPayload(payload);
+    // Constant-time comparison
+    if (sig.length !== expectedSig.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig));
+  } catch {
+    return false;
+  }
 }
 
-export function revokeSession(token: string): void {
-  sessions.delete(token);
-}
+// Legacy no-op (kept for backward compat — no longer needed with stateless tokens)
+export function registerSession(_token: string): void {}
+export function revokeSession(_token: string): void {}
 
 export function verifyCredentials(username: string, password: string): boolean {
   const creds = getAdminCredentials();

@@ -9,36 +9,85 @@ interface FileUploadProps {
   accept?: "image" | "document" | "all";
   label?: string;
   className?: string;
+  /** Max file size in bytes. Defaults: image=2MB, document=5MB */
+  maxSizeBytes?: number;
 }
 
-export default function FileUpload({ value, onChange, accept = "image", label, className = "" }: FileUploadProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const IMAGE_MAX = 2 * 1024 * 1024;   // 2 MB → keeps base64 reasonable
+const DOC_MAX   = 5 * 1024 * 1024;   // 5 MB
 
-  const acceptMap = {
-    image: "image/jpeg,image/png,image/webp",
-    document: "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    all: "image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  };
+const ACCEPT_MAP = {
+  image:    "image/jpeg,image/png,image/webp,image/gif",
+  document: "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  all:      "image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+};
+
+/** Compress image in-browser before base64 encoding. Target ~800px wide, quality 0.75. */
+async function compressImage(file: File, maxWidth = 800, quality = 0.75): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale  = Math.min(1, maxWidth / img.width);
+      const canvas = document.createElement("canvas");
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+/** Convert any file to a data-URL via FileReader. */
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+export default function FileUpload({
+  value,
+  onChange,
+  accept = "image",
+  label,
+  className = "",
+  maxSizeBytes,
+}: FileUploadProps) {
+  const inputRef   = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError  ] = useState<string | null>(null);
+
+  const maxBytes = maxSizeBytes ?? (accept === "image" ? IMAGE_MAX : DOC_MAX);
 
   const handleFile = async (file: File) => {
     setError(null);
-    setUploading(true);
+
+    if (file.size > maxBytes) {
+      setError(`File terlalu besar (${(file.size / 1024 / 1024).toFixed(1)} MB). Maks. ${(maxBytes / 1024 / 1024).toFixed(0)} MB.`);
+      return;
+    }
+
+    setLoading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Upload gagal");
-        return;
+      let dataUrl: string;
+      if (file.type.startsWith("image/")) {
+        // Compress images before encoding to keep stored text size manageable
+        dataUrl = await compressImage(file);
+      } else {
+        dataUrl = await fileToDataUrl(file);
       }
-      onChange(data.url);
+      onChange(dataUrl);
     } catch {
-      setError("Gagal mengupload file. Periksa koneksi.");
+      setError("Gagal memproses file. Coba lagi.");
     } finally {
-      setUploading(false);
+      setLoading(false);
     }
   };
 
@@ -48,8 +97,15 @@ export default function FileUpload({ value, onChange, accept = "image", label, c
     if (file) handleFile(file);
   };
 
-  const isImage = value && /\.(jpg|jpeg|png|webp|gif|svg)/i.test(value);
-  const isPdf = value && /\.pdf/i.test(value);
+  // Detect previews: both remote URLs and local data-URLs
+  const isImage = value && (
+    /\.(jpg|jpeg|png|webp|gif|svg)/i.test(value) ||
+    value.startsWith("data:image/")
+  );
+  const isPdf   = value && (
+    /\.pdf/i.test(value) ||
+    value.startsWith("data:application/pdf")
+  );
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -73,7 +129,9 @@ export default function FileUpload({ value, onChange, accept = "image", label, c
             <div className="w-full h-40 flex items-center justify-center bg-slate-50 dark:bg-slate-800">
               <div className="text-center space-y-2">
                 <FileText className="w-10 h-10 text-slate-400 mx-auto" />
-                <span className="text-xs text-slate-500 font-semibold">{value.split("/").pop()}</span>
+                <span className="text-xs text-slate-500 font-semibold">
+                  {value.startsWith("data:") ? "Dokumen" : value.split("/").pop()}
+                </span>
               </div>
             </div>
           )}
@@ -88,7 +146,7 @@ export default function FileUpload({ value, onChange, accept = "image", label, c
           </div>
           <div className="absolute bottom-2 left-2">
             <span className="px-2 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-md">
-              <CheckCircle2 className="w-3 h-3" /> Uploaded
+              <CheckCircle2 className="w-3 h-3" /> Tersimpan
             </span>
           </div>
         </div>
@@ -96,13 +154,13 @@ export default function FileUpload({ value, onChange, accept = "image", label, c
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => !loading && inputRef.current?.click()}
           className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-8 text-center hover:bg-slate-50 dark:hover:bg-white/5 transition-colors cursor-pointer group"
         >
-          {uploading ? (
+          {loading ? (
             <div className="space-y-2">
               <Loader2 className="w-8 h-8 text-dpr-emerald dark:text-dpr-gold mx-auto animate-spin" />
-              <p className="text-xs text-slate-500 font-semibold">Mengupload...</p>
+              <p className="text-xs text-slate-500 font-semibold">Memproses gambar…</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -115,7 +173,11 @@ export default function FileUpload({ value, onChange, accept = "image", label, c
                 Klik atau seret file ke sini
               </p>
               <p className="text-[10px] text-slate-400">
-                {accept === "image" ? "PNG, JPG, WEBP — maks. 5MB" : accept === "document" ? "PDF, DOCX, XLSX — maks. 10MB" : "Gambar atau Dokumen — maks. 10MB"}
+                {accept === "image"
+                  ? `PNG, JPG, WEBP — maks. ${(maxBytes / 1024 / 1024).toFixed(0)} MB (dikompres otomatis)`
+                  : accept === "document"
+                  ? `PDF, DOCX, XLSX — maks. ${(maxBytes / 1024 / 1024).toFixed(0)} MB`
+                  : `Gambar atau Dokumen — maks. ${(maxBytes / 1024 / 1024).toFixed(0)} MB`}
               </p>
             </div>
           )}
@@ -129,7 +191,7 @@ export default function FileUpload({ value, onChange, accept = "image", label, c
       <input
         ref={inputRef}
         type="file"
-        accept={acceptMap[accept]}
+        accept={ACCEPT_MAP[accept]}
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

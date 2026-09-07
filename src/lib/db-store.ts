@@ -54,6 +54,16 @@ export async function readDbCollection<K extends keyof CmsData>(key: K): Promise
         const { id, updatedAt, ...rest } = row;
         return rest as unknown as CmsData[K];
       }
+      case "siteContent": {
+        const row = await prisma.pageContent.findUnique({ where: { slug: "siteContent" } });
+        if (!row) return null;
+        return row.sections as unknown as CmsData[K];
+      }
+      case "submissions": {
+        const rows = await prisma.newsSubmission.findMany({ orderBy: { createdAt: "desc" } });
+        if (rows.length === 0) return null;
+        return rows as unknown as CmsData[K];
+      }
       default:
         return null;
     }
@@ -264,6 +274,49 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
             ...stats,
           },
         });
+        return true;
+      }
+      case "siteContent": {
+        const data = value as CmsData["siteContent"];
+        await prisma.pageContent.upsert({
+          where: { slug: "siteContent" },
+          update: {
+            title: "siteContent",
+            sections: data as any,
+          },
+          create: {
+            id: "siteContent",
+            slug: "siteContent",
+            title: "siteContent",
+            sections: data as any,
+          },
+        });
+        return true;
+      }
+      case "submissions": {
+        const items = value as CmsData["submissions"];
+        for (const item of items) {
+          await prisma.newsSubmission.upsert({
+            where: { id: item.id },
+            update: {
+              biodata: item.biodata as any,
+              artikel: item.artikel as any,
+              attachments: item.attachments as any,
+              status: item.status,
+              proofreadNotes: item.proofreadNotes || null,
+              createdAt: item.createdAt,
+            },
+            create: {
+              id: item.id,
+              biodata: item.biodata as any,
+              artikel: item.artikel as any,
+              attachments: item.attachments as any,
+              status: item.status,
+              proofreadNotes: item.proofreadNotes || null,
+              createdAt: item.createdAt,
+            },
+          });
+        }
         return true;
       }
       default:

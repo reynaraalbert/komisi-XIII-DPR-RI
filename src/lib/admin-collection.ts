@@ -84,8 +84,8 @@ export function useCollection<T>(collection: string, defaultValue: T) {
       await apiPut(`/api/data/${collection}`, data);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    } catch {
-      alert("Gagal menyimpan. Pastikan server berjalan.");
+    } catch (err: any) {
+      alert(`Gagal menyimpan: ${err?.message || "Pastikan server berjalan."}`);
     } finally {
       setSaving(false);
     }

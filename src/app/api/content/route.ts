@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const fallback = readAllCms();
 
-  const [stats, anggota, pimpinan, mitraKerja, berita, agenda, aspirasi, pages] = await Promise.all([
+  const [stats, anggota, pimpinan, mitraKerja, berita, agenda, aspirasi, pages, siteContent, submissions] = await Promise.all([
     readDbCollection("stats"),
     readDbCollection("anggota"),
     readDbCollection("pimpinan"),
@@ -21,6 +21,8 @@ export async function GET() {
     readDbCollection("agenda"),
     readDbCollection("aspirasi"),
     readDbCollection("pages"),
+    readDbCollection("siteContent"),
+    readDbCollection("submissions"),
   ]);
 
   return NextResponse.json({
@@ -30,8 +32,8 @@ export async function GET() {
     mitraKerja: mitraKerja ?? readCollection("mitraKerja"),
     berita: berita ?? readCollection("berita"),
     agenda: agenda ?? readCollection("agenda"),
-    siteContent: fallback.siteContent,
-    submissions: fallback.submissions,
+    siteContent: siteContent ?? fallback.siteContent,
+    submissions: submissions ?? fallback.submissions,
     aspirasi: aspirasi ?? readCollection("aspirasi"),
     pages: pages ?? readCollection("pages"),
   });
