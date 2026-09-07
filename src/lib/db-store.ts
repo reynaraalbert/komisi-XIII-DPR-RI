@@ -19,7 +19,7 @@ export async function readDbCollection<K extends keyof CmsData>(key: K): Promise
         return rows as unknown as CmsData[K];
       }
       case "anggota": {
-        const rows = await prisma.member.findMany({ where: { role: "Anggota Komisi" } });
+        const rows = await prisma.member.findMany({ orderBy: { createdAt: "asc" } });
         if (rows.length === 0) return null;
         return rows as unknown as CmsData[K];
       }

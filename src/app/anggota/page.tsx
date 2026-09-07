@@ -11,12 +11,20 @@ export default function MembersPage() {
   const [selectedDapil, setSelectedDapil] = useState<string>("Semua");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
+  // Clean separation of Pimpinan vs regular Anggota
+  const pimpinanList = pimpinan.length > 0
+    ? pimpinan
+    : anggota.filter((m) => m.role !== "Anggota Komisi");
+
+  const pimpinanIds = new Set(pimpinanList.map((p) => p.id));
+  const regularAnggota = anggota.filter((m) => m.role === "Anggota Komisi" && !pimpinanIds.has(m.id));
+
   const dapilList = [
     "Semua",
-    ...Array.from(new Set(anggota.map(m => m.dapil)))
+    ...Array.from(new Set(regularAnggota.map((m) => m.dapil))),
   ];
 
-  const filteredMembers = anggota.filter((member) => {
+  const filteredMembers = regularAnggota.filter((member) => {
     const matchesDapil = selectedDapil === "Semua" || member.dapil === selectedDapil;
     const matchesSearch =
       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -94,8 +102,8 @@ export default function MembersPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-          {pimpinan.map((pimpinan) => (
-            <MemberCard key={pimpinan.id} member={pimpinan} />
+          {pimpinanList.map((item) => (
+            <MemberCard key={item.id} member={item} />
           ))}
         </div>
       </div>

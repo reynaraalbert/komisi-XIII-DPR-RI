@@ -10,6 +10,8 @@ import { Member, ANGGOTA_KOMISI } from "@/lib/data";
 import FileUpload from "@/components/ui/FileUpload";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { apiPut } from "@/lib/admin-client";
+
 const ROLES = ["Ketua Komisi", "Wakil Ketua Komisi", "Anggota Komisi"] as const;
 const FRAKSI = ["PDI Perjuangan", "Partai Golkar", "Partai Gerindra", "Partai NasDem", "PKB", "PKS", "PAN", "Partai Demokrat"] as const;
 
@@ -43,7 +45,11 @@ export default function AdminAnggotaPage() {
     setEditing({ ...m, billsLed: [...m.billsLed] });
   };
 
-  const persist = (updated: Member[]) => setData(updated);
+  const persist = (updated: Member[]) => {
+    setData(updated);
+    const pimpinanList = updated.filter((m) => m.role !== "Anggota Komisi");
+    apiPut("/api/data/pimpinan", pimpinanList).catch(() => {});
+  };
 
   const handleSaveItem = () => {
     if (!editing) return;
