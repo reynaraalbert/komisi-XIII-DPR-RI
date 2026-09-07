@@ -4,6 +4,9 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { CmsProvider } from "@/components/CmsProvider";
 import SiteChrome from "@/components/SiteChrome";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Komisi XIII DPR RI - Reformasi Hukum, HAM & Antikorupsi",
   description:

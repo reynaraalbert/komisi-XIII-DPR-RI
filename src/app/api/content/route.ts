@@ -25,16 +25,25 @@ export async function GET() {
     readDbCollection("submissions"),
   ]);
 
-  return NextResponse.json({
-    stats: stats ?? readCollection("stats"),
-    anggota: anggota ?? readCollection("anggota"),
-    pimpinan: pimpinan ?? readCollection("pimpinan"),
-    mitraKerja: mitraKerja ?? readCollection("mitraKerja"),
-    berita: berita ?? readCollection("berita"),
-    agenda: agenda ?? readCollection("agenda"),
-    siteContent: siteContent ?? fallback.siteContent,
-    submissions: submissions ?? fallback.submissions,
-    aspirasi: aspirasi ?? readCollection("aspirasi"),
-    pages: pages ?? readCollection("pages"),
-  });
+  return NextResponse.json(
+    {
+      stats: stats ?? readCollection("stats"),
+      anggota: anggota ?? readCollection("anggota"),
+      pimpinan: pimpinan ?? readCollection("pimpinan"),
+      mitraKerja: mitraKerja ?? readCollection("mitraKerja"),
+      berita: berita ?? readCollection("berita"),
+      agenda: agenda ?? readCollection("agenda"),
+      siteContent: siteContent ?? fallback.siteContent,
+      submissions: submissions ?? fallback.submissions,
+      aspirasi: aspirasi ?? readCollection("aspirasi"),
+      pages: pages ?? readCollection("pages"),
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    }
+  );
 }
