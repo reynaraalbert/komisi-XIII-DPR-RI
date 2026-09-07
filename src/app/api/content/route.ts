@@ -7,12 +7,12 @@ export const dynamic = "force-dynamic";
 /**
  * Public bulk endpoint — returns the full content dataset without requiring
  * authentication. Used by public pages (server components) to render edits in
- * real time. Content is non-sensitive editorial data.
+ * real time.
  */
 export async function GET() {
   const fallback = readAllCms();
 
-  const [stats, anggota, pimpinan, mitraKerja, berita, agenda, aspirasi, pages, siteContent, submissions] = await Promise.all([
+  const [stats, dbAnggota, dbPimpinan, mitraKerja, berita, agenda, aspirasi, pages, siteContent, submissions] = await Promise.all([
     readDbCollection("stats"),
     readDbCollection("anggota"),
     readDbCollection("pimpinan"),
@@ -25,11 +25,19 @@ export async function GET() {
     readDbCollection("submissions"),
   ]);
 
+  // Derive final anggota & pimpinan cleanly so DB updates NEVER fall back to default
+  const finalAnggota = dbAnggota ?? readCollection("anggota");
+  const finalPimpinan =
+    dbPimpinan ??
+    (dbAnggota
+      ? (dbAnggota as any[]).filter((m: any) => m.role !== "Anggota Komisi")
+      : readCollection("pimpinan"));
+
   return NextResponse.json(
     {
       stats: stats ?? readCollection("stats"),
-      anggota: anggota ?? readCollection("anggota"),
-      pimpinan: pimpinan ?? readCollection("pimpinan"),
+      anggota: finalAnggota,
+      pimpinan: finalPimpinan,
       mitraKerja: mitraKerja ?? readCollection("mitraKerja"),
       berita: berita ?? readCollection("berita"),
       agenda: agenda ?? readCollection("agenda"),
