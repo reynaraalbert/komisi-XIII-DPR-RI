@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCmsContent } from "@/components/CmsProvider";
-import { STATS } from "@/lib/data";
+import { EMPTY_STATS } from "@/lib/defaults";
 import { useCollection } from "@/lib/admin-collection";
 import { Field, Grid, Input } from "@/components/admin/ui";
 
@@ -18,8 +18,8 @@ export default function AdminDashboardPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const statsColl = useCollection<typeof STATS>("stats", STATS);
-  const setStat = (key: keyof typeof STATS, val: string) =>
+  const statsColl = useCollection<typeof EMPTY_STATS>("stats", EMPTY_STATS);
+  const setStat = (key: keyof typeof EMPTY_STATS, val: string) =>
     statsColl.setData((prev) => ({ ...prev, [key]: Number(val) || 0 }));
 
   const statCards = [
@@ -233,7 +233,7 @@ export default function AdminDashboardPage() {
           <RefreshCw className="w-4 h-4 animate-spin text-dpr-emerald dark:text-dpr-gold shrink-0" />
         )}
         <span>
-          Sistem CMS terhubung. Seluruh perubahan data tersimpan ke folder <code className="text-dpr-emerald dark:text-dpr-gold font-bold">data/</code> dan dapat disinkronkan langsung ke mode user.
+          Sistem CMS terhubung. Seluruh perubahan data tersimpan langsung ke database PostgreSQL (Supabase) dan otomatis tampil di mode user secara realtime.
         </span>
       </div>
     </div>

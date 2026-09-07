@@ -3,6 +3,28 @@ import type { CmsData } from "@/lib/cms-store";
 
 export const isDbConnected = Boolean(process.env.DATABASE_URL);
 
+/**
+ * Actively tests whether the database is reachable. Returns true/false instead
+ * of only checking that a URL exists (a URL existing does not mean the DB is up).
+ * Used by the admin UI to show an accurate "Terhubung / Tidak Terhubung" status
+ * instead of silently falling back to static defaults.
+ */
+export async function pingDb(timeoutMs = 4000): Promise<boolean> {
+  if (!isDbConnected) return false;
+  try {
+    // Run against a timeout so the UI never hangs on a dead connection.
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("DB ping timeout")), timeoutMs)
+      ),
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function readDbCollection<K extends keyof CmsData>(key: K): Promise<CmsData[K] | null> {
   if (!isDbConnected) return null;
 
@@ -10,37 +32,30 @@ export async function readDbCollection<K extends keyof CmsData>(key: K): Promise
     switch (key) {
       case "berita": {
         const rows = await prisma.newsArticle.findMany({ orderBy: { createdAt: "desc" } });
-        if (rows.length === 0) return null;
         return rows as unknown as CmsData[K];
       }
       case "agenda": {
         const rows = await prisma.agendaItem.findMany({ orderBy: { createdAt: "desc" } });
-        if (rows.length === 0) return null;
         return rows as unknown as CmsData[K];
       }
       case "anggota": {
         const rows = await prisma.member.findMany({ orderBy: { createdAt: "asc" } });
-        if (rows.length === 0) return null;
         return rows as unknown as CmsData[K];
       }
       case "pimpinan": {
         const rows = await prisma.member.findMany({ where: { role: { in: ["Ketua Komisi", "Wakil Ketua Komisi"] } } });
-        if (rows.length === 0) return null;
         return rows as unknown as CmsData[K];
       }
       case "mitraKerja": {
         const rows = await prisma.mitraKerja.findMany();
-        if (rows.length === 0) return null;
         return rows as unknown as CmsData[K];
       }
       case "aspirasi": {
         const rows = await prisma.aspirasi.findMany({ orderBy: { createdAt: "desc" } });
-        if (rows.length === 0) return null;
         return rows as unknown as CmsData[K];
       }
       case "pages": {
         const rows = await prisma.pageContent.findMany();
-        if (rows.length === 0) return null;
         return rows.map((r: { id: string; slug: string; title: string; sections: any }) => ({
           id: r.id,
           slug: r.slug,
@@ -61,7 +76,6 @@ export async function readDbCollection<K extends keyof CmsData>(key: K): Promise
       }
       case "submissions": {
         const rows = await prisma.newsSubmission.findMany({ orderBy: { createdAt: "desc" } });
-        if (rows.length === 0) return null;
         return rows as unknown as CmsData[K];
       }
       default:
@@ -80,6 +94,7 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
     switch (key) {
       case "berita": {
         const items = value as CmsData["berita"];
+        const ids = items.map((item) => item.id);
         for (const item of items) {
           await prisma.newsArticle.upsert({
             where: { id: item.id },
@@ -112,10 +127,17 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
             },
           });
         }
+        // Safety: only prune rows NOT in the incoming list when the list is
+        // non-empty. An empty list usually means the CMS loaded static defaults
+        // (DB read failed) — pruning then would wipe every real row.
+        if (ids.length > 0) {
+          await prisma.newsArticle.deleteMany({ where: { id: { notIn: ids } } });
+        }
         return true;
       }
       case "agenda": {
         const items = value as CmsData["agenda"];
+        const ids = items.map((item) => item.id);
         for (const item of items) {
           await prisma.agendaItem.upsert({
             where: { id: item.id },
@@ -146,11 +168,14 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
             },
           });
         }
+        if (ids.length > 0) {
+          await prisma.agendaItem.deleteMany({ where: { id: { notIn: ids } } });
+        }
         return true;
       }
-      case "anggota":
-      case "pimpinan": {
+      case "anggota": {
         const items = value as CmsData["anggota"];
+        const ids = items.map((item) => item.id);
         for (const item of items) {
           await prisma.member.upsert({
             where: { id: item.id },
@@ -185,10 +210,58 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
             },
           });
         }
+        if (ids.length > 0) {
+          await prisma.member.deleteMany({ where: { id: { notIn: ids } } });
+        }
+        return true;
+      }
+      case "pimpinan": {
+        const items = value as CmsData["pimpinan"];
+        const ids = items.map((item) => item.id);
+        for (const item of items) {
+          await prisma.member.upsert({
+            where: { id: item.id },
+            update: {
+              nomorAnggota: item.nomorAnggota,
+              name: item.name,
+              role: item.role,
+              fraksi: item.fraksi,
+              dapil: item.dapil,
+              photoUrl: item.photoUrl,
+              email: item.email,
+              bio: item.bio,
+              billsLed: item.billsLed,
+              pendidikan: item.pendidikan || null,
+              masaJabatan: item.masaJabatan || null,
+              komisi: item.komisi || null,
+            },
+            create: {
+              id: item.id,
+              nomorAnggota: item.nomorAnggota,
+              name: item.name,
+              role: item.role,
+              fraksi: item.fraksi,
+              dapil: item.dapil,
+              photoUrl: item.photoUrl,
+              email: item.email,
+              bio: item.bio,
+              billsLed: item.billsLed,
+              pendidikan: item.pendidikan || null,
+              masaJabatan: item.masaJabatan || null,
+              komisi: item.komisi || null,
+            },
+          });
+        }
+        if (ids.length > 0) {
+          await prisma.member.deleteMany({
+            where: { role: { in: ["Ketua Komisi", "Wakil Ketua Komisi"] }, id: { notIn: ids } },
+          });
+        }
         return true;
       }
       case "mitraKerja": {
         const items = value as CmsData["mitraKerja"];
+        const ids = items.map((item) => item.id);
         for (const item of items) {
           await prisma.mitraKerja.upsert({
             where: { id: item.id },
@@ -211,10 +284,14 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
             },
           });
         }
+        if (ids.length > 0) {
+          await prisma.mitraKerja.deleteMany({ where: { id: { notIn: ids } } });
+        }
         return true;
       }
       case "aspirasi": {
         const items = value as CmsData["aspirasi"];
+        const ids = items.map((item) => item.id);
         for (const item of items) {
           await prisma.aspirasi.upsert({
             where: { id: item.id },
@@ -242,6 +319,9 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
               createdAt: item.createdAt,
             },
           });
+        }
+        if (ids.length > 0) {
+          await prisma.aspirasi.deleteMany({ where: { id: { notIn: ids } } });
         }
         return true;
       }
@@ -295,6 +375,7 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
       }
       case "submissions": {
         const items = value as CmsData["submissions"];
+        const ids = items.map((item) => item.id);
         for (const item of items) {
           await prisma.newsSubmission.upsert({
             where: { id: item.id },
@@ -316,6 +397,9 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
               createdAt: item.createdAt,
             },
           });
+        }
+        if (ids.length > 0) {
+          await prisma.newsSubmission.deleteMany({ where: { id: { notIn: ids } } });
         }
         return true;
       }

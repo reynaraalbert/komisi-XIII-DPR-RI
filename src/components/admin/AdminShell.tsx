@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -332,6 +332,9 @@ function AdminShellContent({ children }: { children: React.ReactNode }) {
 
           {/* Right section: Sync Live + Theme + Preview */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* DB status */}
+            <DbStatusBadge />
+
             {/* Simpan Perubahan Button */}
             <HeaderSaveButton />
 
@@ -360,6 +363,39 @@ function AdminShellContent({ children }: { children: React.ReactNode }) {
         <main className="flex-1 p-3 sm:p-5 lg:p-8 overflow-x-hidden">{children}</main>
       </div>
     </div>
+  );
+}
+
+function DbStatusBadge() {
+  const [state, setState] = useState<"checking" | "online" | "offline">("checking");
+
+  const check = useCallback(async () => {
+    try {
+      const res = await fetch("/api/db-status", { cache: "no-store" });
+      const d = await res.json();
+      setState(d.connected ? "online" : "offline");
+    } catch {
+      setState("offline");
+    }
+  }, []);
+
+  useEffect(() => { check(); }, [check]);
+
+  const map = {
+    checking: { label: "Cek DB...", cls: "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10", dot: "bg-slate-400" },
+    online: { label: "DB Terhubung", cls: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800", dot: "bg-emerald-500" },
+    offline: { label: "DB Tidak Terhubung (Mode Default)", cls: "bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800", dot: "bg-red-500" },
+  }[state];
+
+  return (
+    <button
+      onClick={check}
+      title={state === "offline" ? "Database tidak terhubung — tampilan memakai data default. Klik untuk cek ulang." : "Klik untuk cek status database"}
+      className={`hidden xl:inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border ${map.cls}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${map.dot} ${state === "checking" ? "animate-pulse" : ""}`} />
+      {map.label}
+    </button>
   );
 }
 

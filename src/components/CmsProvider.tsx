@@ -1,140 +1,101 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import {
-  STATS,
-  ANGGOTA_KOMISI,
-  PIMPINAN_KOMISI,
-  MITRA_KERJA,
-  BERITA_LIST,
-  AGENDA_LIST,
-  SiteContent,
-} from "@/lib/data";
-import { PAGES } from "@/lib/pages";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
+import type { SiteContent, Member, NewsArticle, AgendaItem, MitraKerja, PageContent } from "@/lib/data";
+import { EMPTY_STATS, EMPTY_SITECONTENT } from "@/lib/defaults";
 
 export interface CmsContent {
-  stats: typeof STATS;
-  anggota: typeof ANGGOTA_KOMISI;
-  pimpinan: typeof PIMPINAN_KOMISI;
-  mitraKerja: typeof MITRA_KERJA;
-  berita: typeof BERITA_LIST;
-  agenda: typeof AGENDA_LIST;
-  siteContent: typeof SiteContent;
-  pages: typeof PAGES;
+  stats: { totalMembers: number; totalPimpinan: number; mitraKerjaCount: number; activeBills: number; completedHearings: number; aspirationsProcessed: number };
+  anggota: Member[];
+  pimpinan: Member[];
+  mitraKerja: MitraKerja[];
+  berita: NewsArticle[];
+  agenda: AgendaItem[];
+  siteContent: SiteContent;
+  pages: PageContent[];
 }
 
-const DEFAULT_CONTENT: CmsContent = {
-  stats: STATS,
-  anggota: ANGGOTA_KOMISI,
-  pimpinan: PIMPINAN_KOMISI,
-  mitraKerja: MITRA_KERJA,
-  berita: BERITA_LIST,
-  agenda: AGENDA_LIST,
-  siteContent: SiteContent,
-  pages: PAGES,
+const EMPTY_CONTENT: CmsContent = {
+  stats: EMPTY_STATS,
+  anggota: [],
+  pimpinan: [],
+  mitraKerja: [],
+  berita: [],
+  agenda: [],
+  siteContent: EMPTY_SITECONTENT,
+  pages: [],
 };
-
-const LOCAL_STORAGE_KEY = "komisi13_cms_cache_v2";
 
 interface CmsContextValue {
   content: CmsContent;
   loaded: boolean;
 }
 
-const CmsContext = createContext<CmsContextValue>({ content: DEFAULT_CONTENT, loaded: false });
+const CmsContext = createContext<CmsContextValue>({ content: EMPTY_CONTENT, loaded: false });
 
 export function CmsProvider({ children }: { children: ReactNode }) {
-  const [content, setContent] = useState<CmsContent>(DEFAULT_CONTENT);
+  const [content, setContent] = useState<CmsContent>(EMPTY_CONTENT);
   const [loaded, setLoaded] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load persistent cache from localStorage on client mount so user edits never reset to default!
-  useEffect(() => {
+  const fetchContent = useCallback(async () => {
     try {
-      if (typeof window !== "undefined") {
-        const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          setContent((prev) => ({ ...prev, ...parsed }));
-        }
+      const res = await fetch("/api/content", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache, no-store, must-revalidate", Pragma: "no-cache" },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setContent((prev) => {
+          const merged = { ...prev, ...data } as unknown as Record<keyof CmsContent, unknown>;
+          // Never overwrite defaults with null/undefined (DB might be empty)
+          (Object.keys(merged) as (keyof CmsContent)[]).forEach((k) => {
+            if (merged[k] === null || merged[k] === undefined) {
+              merged[k] = prev[k];
+            }
+          });
+          return merged as unknown as CmsContent;
+        });
       }
     } catch {
-      // ignore parse errors
+      // DB might be temporarily unavailable
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
-  // Sync state & persist to localStorage whenever content changes
-  const updateContent = (fn: (prev: CmsContent) => CmsContent) => {
-    setContent((prev) => {
-      const next = fn(prev);
-      try {
-        if (typeof window !== "undefined") {
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
-        }
-      } catch {
-        // ignore quota errors
-      }
-      return next;
-    });
-  };
-
   useEffect(() => {
-    let cancelled = false;
+    const isAdminPage = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+    fetchContent();
 
-    async function load() {
-      try {
-        const res = await fetch("/api/content", {
-          cache: "no-store",
-          headers: {
-            "Pragma": "no-cache",
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-          },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (!cancelled && data) {
-            updateContent((prev) => ({ ...prev, ...data }));
-          }
-        }
-      } catch {
-        // Fall back to current content
-      } finally {
-        if (!cancelled) setLoaded(true);
-      }
+    // Poll for changes every 3 seconds (public pages only; admin has its own live sync)
+    if (!isAdminPage) {
+      intervalRef.current = setInterval(fetchContent, 3000);
     }
 
-    load();
-
-    // Listen for instant BroadcastChannel updates from Admin edits across tabs
+    // BroadcastChannel for instant admin→user sync across tabs
     let bc: BroadcastChannel | null = null;
-    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
-      try {
-        bc = new BroadcastChannel("cms_sync_channel");
-        bc.onmessage = (event) => {
-          if (event.data?.collection && event.data?.data) {
-            const { collection, data } = event.data;
-            updateContent((prev) => ({
-              ...prev,
-              [collection]: data,
-            }));
-          }
-        };
-      } catch {
-        // ignore
-      }
+    try {
+      bc = new BroadcastChannel("cms_sync_channel");
+      bc.onmessage = (event) => {
+        if (event.data?.collection && event.data?.data) {
+          const { collection, data } = event.data;
+          setContent((prev) => ({ ...prev, [collection]: data }));
+        }
+      };
+    } catch {
+      // ignore
     }
 
-    // Re-fetch every 2 seconds for server sync
-    const interval = setInterval(load, 2000);
-    const onFocus = () => load();
+    const onFocus = () => fetchContent();
     window.addEventListener("focus", onFocus);
 
     return () => {
-      cancelled = true;
-      clearInterval(interval);
+      if (intervalRef.current) clearInterval(intervalRef.current);
       window.removeEventListener("focus", onFocus);
       if (bc) bc.close();
     };
-  }, []);
+  }, [fetchContent]);
 
   return <CmsContext.Provider value={{ content, loaded }}>{children}</CmsContext.Provider>;
 }

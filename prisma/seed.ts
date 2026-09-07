@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { BERITA_LIST, AGENDA_LIST, ANGGOTA_KOMISI, PIMPINAN_KOMISI, MITRA_KERJA, STATS } from "../src/lib/data";
+import { BERITA_LIST, AGENDA_LIST, ANGGOTA_KOMISI, PIMPINAN_KOMISI, MITRA_KERJA, STATS, SiteContent } from "../src/lib/data";
 import { PAGES } from "../src/lib/pages";
 
 const prisma = new PrismaClient();
@@ -109,11 +109,24 @@ async function main() {
     });
   }
 
+  // 6b. Seed Site Content (beranda content: hero, footer, kontak, maps, dll.)
+  console.log("Seeding Site Content...");
+  await prisma.pageContent.upsert({
+    where: { slug: "siteContent" },
+    update: {},
+    create: {
+      id: "siteContent",
+      slug: "siteContent",
+      title: "siteContent",
+      sections: SiteContent as any,
+    },
+  });
+
   // 7. Seed Stats
   console.log("Seeding Site Stats...");
   await prisma.siteStat.upsert({
     where: { id: "default-stats" },
-    update: STATS,
+    update: {},
     create: {
       id: "default-stats",
       ...STATS,

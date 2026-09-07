@@ -77,12 +77,13 @@ export interface NewsSubmission {
     isiBerita: string;
     tags?: string;
     sumber?: { judul: string; url: string }[];
+    publishedNewsId?: string;
   };
   attachments: {
     imageUrl?: string;
     documentUrl?: string;
   };
-  status: "pending" | "approved" | "declined";
+  status: "pending" | "approved" | "declined" | "takedown";
   proofreadNotes?: string;
   createdAt: string;
 }
@@ -151,21 +152,6 @@ export const PIMPINAN_KOMISI: Member[] = [
     bio: 'Hj. Dewi Asmara, S.H., M.H. adalah legislator senior Fraksi Partai Golkar yang telah mengabdikan diri di dunia legislasi selama lebih dari dua dekade. Sebagai Ketua Komisi XIII DPR RI Periode 2024–2029, beliau memimpin pengawasan terhadap reformasi hukum, HAM, keimigrasian, pemasyarakatan, dan antikorupsi. Keahliannya di bidang hukum tata negara menjadi landasan kuat dalam memimpin rapat kerja bersama Kemenkum, KemenHAM, dan KPK.',
     billsLed: ['RUU Bantuan Hukum Bagi Masyarakat Miskin', 'RUU Pemasyarakatan (Revisi)', 'RUU Hak Cipta (Amendemen)'],
     pendidikan: 'S2 Hukum, Universitas Indonesia',
-    masaJabatan: '2024 – 2029',
-    komisi: 'Komisi XIII'
-  },
-  {
-    id: 'm-2',
-    nomorAnggota: 'A-002',
-    name: 'Dr. H. Adies Kadir, S.H., M.Hum.',
-    role: 'Wakil Ketua Komisi',
-    fraksi: 'Partai Golkar',
-    dapil: 'Jawa Timur I',
-    photoUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?q=80&w=600&auto=format&fit=crop',
-    email: 'adies.kadir@dpr.go.id',
-    bio: 'Dr. H. Adies Kadir, S.H., M.Hum. adalah advokat senior dan anggota DPR RI dari Fraksi Golkar dapil Jawa Timur I (Surabaya-Sidoarjo). Sebelum menjadi Wakil Ketua Komisi XIII, beliau aktif di Komisi III yang membidangi hukum. Dikenal sebagai tokoh legislator yang vokal dalam mendorong perbaikan kapasitas Lapas dan pemenuhan hak warga binaan pemasyarakatan.',
-    billsLed: ['Overcrowding Lapas Solution Plan', 'Revisi PP Pemasyarakatan No. 99 Tahun 2012', 'RUU Bantuan Hukum Bagi Masyarakat Tidak Mampu'],
-    pendidikan: 'S3 Ilmu Hukum, Universitas Airlangga',
     masaJabatan: '2024 – 2029',
     komisi: 'Komisi XIII'
   },

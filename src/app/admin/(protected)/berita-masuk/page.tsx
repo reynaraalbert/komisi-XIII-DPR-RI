@@ -9,12 +9,13 @@ import { PageHeader, EmptyState, Field, Input, Select, Textarea, ModalWrapper } 
 import { motion, AnimatePresence } from "framer-motion";
 import type { NewsSubmission } from "@/lib/data";
 
-const FILTERS = ["pending", "approved", "declined"] as const;
+const STATUS = ["pending", "approved", "declined", "takedown"] as const;
+type Status = (typeof STATUS)[number];
 
 export default function AdminBeritaMasukPage() {
   const [submissions, setSubmissions] = useState<NewsSubmission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"pending" | "approved" | "declined" | "all">("pending");
+  const [filter, setFilter] = useState<Status | "all">("pending");
   const [selected, setSelected] = useState<NewsSubmission | null>(null);
   const [proofread, setProofread] = useState<{ title: string; summary: string; content: string; category: string } | null>(null);
   const [proofreadNotes, setProofreadNotes] = useState("");
@@ -34,6 +35,19 @@ export default function AdminBeritaMasukPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Auto-refresh so new user submissions appear instantly (polling + tab events)
+  useEffect(() => {
+    const onFocus = () => load();
+    window.addEventListener("focus", onFocus);
+    const interval = setInterval(() => {
+      if (!document.hidden && !selected) load();
+    }, 5000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearInterval(interval);
+    };
+  }, [load, selected]);
+
   const openSubmission = (s: NewsSubmission) => {
     setSelected(s);
     setProofreadNotes(s.proofreadNotes || "");
@@ -45,24 +59,61 @@ export default function AdminBeritaMasukPage() {
     });
   };
 
-  const handleAction = async (action: "approve" | "decline") => {
+  const handleAction = async (action: "approve" | "decline" | "update" | "takedown") => {
     if (!selected) return;
     setBusy(true);
+
+    // Optimistic: reflect the new status in the list immediately so the UI
+    // feels instant, even while the database write is still completing.
+    const newStatus: Status = action === "approve"
+      ? "approved"
+      : action === "decline"
+        ? "declined"
+        : action === "takedown"
+          ? "takedown"
+          : selected.status;
+
+    const prevSelected = selected;
+    setSubmissions((prev) =>
+      prev.map((s) => (s.id === selected.id ? { ...s, status: newStatus, proofreadNotes: action === "decline" ? proofreadNotes : s.proofreadNotes } : s))
+    );
+    setSelected(null);
+
     try {
-      await fetch(`/api/submissions/${selected.id}`, {
+      const res = await fetch(`/api/submissions/${selected.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
           proofreadNotes,
-          proofread: action === "approve" ? proofread : undefined,
+          proofread: action === "approve" || action === "update" ? proofread : undefined,
         }),
       });
-      await load();
-      setSelected(null);
-    } finally {
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        // Roll back the optimistic update and surface the error.
+        setBusy(false);
+        alert(result.error || `Gagal (${res.status}). Coba lagi.`);
+        setSubmissions((prev) =>
+          prev.map((s) => (s.id === prevSelected.id ? { ...s, status: prevSelected.status, proofreadNotes: prevSelected.proofreadNotes } : s))
+        );
+        setSelected(prevSelected);
+        return;
+      }
+    } catch (err) {
       setBusy(false);
+      alert("Koneksi gagal: " + (err as Error).message);
+      setSubmissions((prev) =>
+        prev.map((s) => (s.id === prevSelected.id ? { ...s, status: prevSelected.status, proofreadNotes: prevSelected.proofreadNotes } : s))
+      );
+      setSelected(prevSelected);
+      return;
     }
+
+    // Refresh from DB in the background so counts/status stay accurate, but
+    // don't block the UI on it.
+    setBusy(false);
+    load();
   };
 
   const filtered = filter === "all" ? submissions : submissions.filter((s) => s.status === filter);
@@ -70,6 +121,7 @@ export default function AdminBeritaMasukPage() {
     pending: submissions.filter((s) => s.status === "pending").length,
     approved: submissions.filter((s) => s.status === "approved").length,
     declined: submissions.filter((s) => s.status === "declined").length,
+    takedown: submissions.filter((s) => s.status === "takedown").length,
   };
 
   const statusBadge = (s: string) => {
@@ -77,6 +129,7 @@ export default function AdminBeritaMasukPage() {
       pending: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700/50",
       approved: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/50",
       declined: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700/50",
+      takedown: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600",
     };
     return map[s] || "";
   };
@@ -86,7 +139,7 @@ export default function AdminBeritaMasukPage() {
       <PageHeader
         icon={Inbox}
         title="Berita Masuk"
-        subtitle="Proofread & kelola berita yang dikirim pengguna dari mode publik. Setujui untuk dipublikasikan atau tolak."
+        subtitle="Proofread & kelola berita yang dikirim pengguna. Setujui untuk publikasi, tolak, edit, atau tarik berita yang sudah tayang."
       />
 
       {/* Filter tabs */}
@@ -94,7 +147,7 @@ export default function AdminBeritaMasukPage() {
         <span className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400 mr-1">
           <Filter className="w-3.5 h-3.5" /> Filter:
         </span>
-        {[{ k: "pending", label: "Menunggu" }, { k: "approved", label: "Disetujui" }, { k: "declined", label: "Ditolak" }, { k: "all", label: "Semua" }].map((f) => (
+        {[{ k: "pending", label: "Menunggu" }, { k: "approved", label: "Disetujui" }, { k: "declined", label: "Ditolak" }, { k: "takedown", label: "Tarik" }, { k: "all", label: "Semua" }].map((f) => (
           <button
             key={f.k}
             onClick={() => setFilter(f.k as typeof filter)}
@@ -157,7 +210,10 @@ export default function AdminBeritaMasukPage() {
               className="bg-white dark:bg-dpr-navy-card border border-slate-200 dark:border-dpr-gold/30 rounded-3xl w-full max-w-4xl max-h-[92vh] overflow-hidden shadow-2xl flex flex-col"
             >
               <div className="sticky top-0 z-10 bg-white dark:bg-dpr-navy-card border-b border-slate-200 dark:border-white/10 px-6 py-4 flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 dark:text-white text-base">Proofread Berita</h3>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Proofread Berita</h3>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge(selected.status)} capitalize`}>{selected.status}</span>
+                </div>
                 <button onClick={() => setSelected(null)} className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5"><X className="w-5 h-5" /></button>
               </div>
 
@@ -239,23 +295,80 @@ export default function AdminBeritaMasukPage() {
                 <button onClick={() => setSelected(null)} className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                   Batal
                 </button>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleAction("decline")}
-                    disabled={busy || selected.status !== "pending"}
-                    className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors"
-                  >
-                    {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                    Tolak
-                  </button>
-                  <button
-                    onClick={() => handleAction("approve")}
-                    disabled={busy || selected.status !== "pending"}
-                    className="inline-flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors"
-                  >
-                    {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                    Setujui & Publikasikan
-                  </button>
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  {selected.status === "pending" && (
+                    <>
+                      <button
+                        onClick={() => handleAction("decline")}
+                        disabled={busy}
+                        className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors"
+                      >
+                        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                        Tolak
+                      </button>
+                      <button
+                        onClick={() => handleAction("approve")}
+                        disabled={busy}
+                        className="inline-flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors"
+                      >
+                        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        Setujui & Publikasikan
+                      </button>
+                    </>
+                  )}
+
+                  {selected.status === "declined" && (
+                    <>
+                      <button
+                        onClick={() => handleAction("update")}
+                        disabled={busy}
+                        className="inline-flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors"
+                      >
+                        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                        Simpan Perubahan
+                      </button>
+                      <button
+                        onClick={() => handleAction("approve")}
+                        disabled={busy}
+                        className="inline-flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors"
+                      >
+                        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        Setujui & Publikasikan
+                      </button>
+                    </>
+                  )}
+
+                  {selected.status === "approved" && (
+                    <>
+                      <button
+                        onClick={() => handleAction("takedown")}
+                        disabled={busy}
+                        className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors"
+                      >
+                        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                        Tarik dari Publik
+                      </button>
+                      <button
+                        onClick={() => handleAction("update")}
+                        disabled={busy}
+                        className="inline-flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors"
+                      >
+                        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        Simpan & Perbarui Publik
+                      </button>
+                    </>
+                  )}
+
+                  {selected.status === "takedown" && (
+                    <button
+                      onClick={() => handleAction("approve")}
+                      disabled={busy}
+                      className="inline-flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors"
+                    >
+                      {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                      Publikasikan Kembali
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

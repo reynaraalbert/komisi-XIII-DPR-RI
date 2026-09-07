@@ -4,10 +4,10 @@ import React from "react";
 import { Share2, MapPin } from "lucide-react";
 import { SectionCard, Grid, Field, Input, Textarea, SaveBar, PageHeader } from "@/components/admin/ui";
 import { useCollection } from "@/lib/admin-collection";
-import { SiteContent } from "@/lib/data";
+import { EMPTY_SITECONTENT } from "@/lib/defaults";
 
 export default function AdminBerandaKontakPage() {
-  const { data, setData, save, saving, saved, loaded } = useCollection("siteContent", SiteContent);
+  const { data, setData, save, saving, saved, loaded } = useCollection("siteContent", EMPTY_SITECONTENT);
   if (!loaded) {
     return (
       <div className="flex items-center justify-center py-24 text-slate-500 dark:text-slate-400 text-sm">

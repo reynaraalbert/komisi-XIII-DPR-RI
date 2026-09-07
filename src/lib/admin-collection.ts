@@ -17,6 +17,7 @@ export function useCollection<T>(collection: string, defaultValue: T) {
   const [loaded, setLoaded] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [dbConnected, setDbConnected] = useState<boolean | null>(null);
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const dataRef = useRef<T>(data);
@@ -36,7 +37,6 @@ export function useCollection<T>(collection: string, defaultValue: T) {
 
     apiGet<T>(`/api/data/${collection}`)
       .then((d) => {
-        // Crucial fix: DO NOT overwrite if user has already edited the form!
         if (!cancelled && d !== null && d !== undefined && !isEditedRef.current) {
           setData(d);
           dataRef.current = d;
@@ -49,6 +49,13 @@ export function useCollection<T>(collection: string, defaultValue: T) {
         clearTimeout(timer);
         if (!cancelled) setLoaded(true);
       });
+
+    // Track real database connectivity so the admin can tell whether the form
+    // is showing live DB data or a static-default fallback.
+    fetch("/api/db-status", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled) setDbConnected(!!d.connected); })
+      .catch(() => { if (!cancelled) setDbConnected(false); });
 
     return () => {
       cancelled = true;
@@ -125,5 +132,5 @@ export function useCollection<T>(collection: string, defaultValue: T) {
     [collection]
   );
 
-  return { data, setData: updateData, save, saving, saved, loaded };
+  return { data, setData: updateData, save, saving, saved, loaded, dbConnected };
 }

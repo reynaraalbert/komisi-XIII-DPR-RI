@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useCollection } from "@/lib/admin-collection";
 import { PageHeader, Field, Grid, Input, Textarea, Select, EmptyState, SaveBar, ModalWrapper } from "@/components/admin/ui";
-import { Member, ANGGOTA_KOMISI } from "@/lib/data";
+import type { Member } from "@/lib/data";
 import FileUpload from "@/components/ui/FileUpload";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -31,8 +31,10 @@ const emptyMember = (): Member => ({
   komisi: "Komisi XIII",
 });
 
+const EMPTY_MEMBER_LIST: Member[] = [];
+
 export default function AdminAnggotaPage() {
-  const { data, setData, save, saving, saved } = useCollection<Member[]>("anggota", ANGGOTA_KOMISI);
+  const { data, setData, save, saving, saved } = useCollection<Member[]>("anggota", EMPTY_MEMBER_LIST);
   const [editing, setEditing] = useState<Member | null>(null);
   const [isNew, setIsNew] = useState(false);
 
@@ -45,10 +47,16 @@ export default function AdminAnggotaPage() {
     setEditing({ ...m, billsLed: [...m.billsLed] });
   };
 
-  const persist = (updated: Member[]) => {
+  const persist = async (updated: Member[]) => {
     setData(updated);
+    // Pimpinan is a role-filtered subset of the same member table.
+    // Route both through the CRUD hook so any DB failure surfaces as UI.
     const pimpinanList = updated.filter((m) => m.role !== "Anggota Komisi");
-    apiPut("/api/data/pimpinan", pimpinanList).catch(() => {});
+    try {
+      await apiPut("/api/data/pimpinan", pimpinanList);
+    } catch (err: any) {
+      alert(`Gagal menyimpan ke database: ${err?.message || "Pastikan server berjalan."}`);
+    }
   };
 
   const handleSaveItem = () => {

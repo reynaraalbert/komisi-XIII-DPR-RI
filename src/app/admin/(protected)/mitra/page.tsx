@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useCollection } from "@/lib/admin-collection";
 import { PageHeader, Field, Grid, Input, Textarea, EmptyState, SaveBar, ModalWrapper } from "@/components/admin/ui";
-import { MitraKerja, MITRA_KERJA } from "@/lib/data";
+import type { MitraKerja } from "@/lib/data";
 import FileUpload from "@/components/ui/FileUpload";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -20,8 +20,10 @@ const emptyMitra = (): MitraKerja => ({
   description: "",
 });
 
+const EMPTY_MITRA_LIST: MitraKerja[] = [];
+
 export default function AdminMitraPage() {
-  const { data, setData, save, saving, saved } = useCollection<MitraKerja[]>("mitraKerja", MITRA_KERJA);
+  const { data, setData, save, saving, saved } = useCollection<MitraKerja[]>("mitraKerja", EMPTY_MITRA_LIST);
   const [editing, setEditing] = useState<MitraKerja | null>(null);
   const [isNew, setIsNew] = useState(false);
 

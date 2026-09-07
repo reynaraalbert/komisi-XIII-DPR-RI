@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useCollection } from "@/lib/admin-collection";
 import { PageHeader, SectionCard, Field, Grid, Input, Textarea, Select, EmptyState, SaveBar, ModalWrapper } from "@/components/admin/ui";
-import { NewsArticle, BERITA_LIST } from "@/lib/data";
+import type { NewsArticle } from "@/lib/data";
 import FileUpload from "@/components/ui/FileUpload";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -26,8 +26,10 @@ const emptyArticle = (): NewsArticle => ({
   isFeatured: false,
 });
 
+const EMPTY_NEWS_LIST: NewsArticle[] = [];
+
 export default function AdminBeritaPage() {
-  const { data, setData, save, saving, saved } = useCollection<NewsArticle[]>("berita", BERITA_LIST);
+  const { data, setData, save, saving, saved, dbConnected } = useCollection<NewsArticle[]>("berita", EMPTY_NEWS_LIST);
   const [editing, setEditing] = useState<NewsArticle | null>(null);
   const [isNew, setIsNew] = useState(false);
 
@@ -72,6 +74,11 @@ export default function AdminBeritaPage() {
 
   return (
     <div className="space-y-8 pb-24">
+      {dbConnected === false && (
+        <div className="rounded-2xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 px-4 py-3 text-xs font-semibold">
+          Database tidak terhubung — halaman ini menampilkan data cadangan (default). Perubahan yang Anda simpan TIDAK akan masuk ke database sampai koneksi pulih.
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <PageHeader
           icon={Newspaper}

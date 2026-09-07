@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/api-auth";
-import { CmsData, readCollection, writeCollection } from "@/lib/cms-store";
+import { CmsData, defaultCollection } from "@/lib/cms-store";
 import { readDbCollection, writeDbCollection } from "@/lib/db-store";
 
 export const dynamic = "force-dynamic";
@@ -39,11 +39,8 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 
   const dbData = await readDbCollection(key);
-  if (dbData !== null) {
-    return NextResponse.json(dbData, { headers: NO_CACHE_HEADERS });
-  }
-
-  return NextResponse.json(readCollection(key), { headers: NO_CACHE_HEADERS });
+  const data = dbData ?? defaultCollection(key);
+  return NextResponse.json(data, { headers: NO_CACHE_HEADERS });
 }
 
 export async function PUT(req: NextRequest, { params }: Params) {
@@ -61,11 +58,12 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400, headers: NO_CACHE_HEADERS });
   }
 
-  await writeDbCollection(key, body as never);
-  writeCollection(key, body as never);
+  const ok = await writeDbCollection(key, body as never);
+  if (!ok) {
+    return NextResponse.json({ error: "Gagal menyimpan ke database" }, { status: 500, headers: NO_CACHE_HEADERS });
+  }
 
   try {
-    // Purge Vercel cache for all pages immediately
     revalidatePath("/", "layout");
   } catch {
     // ignore

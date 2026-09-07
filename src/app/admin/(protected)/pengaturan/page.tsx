@@ -108,7 +108,7 @@ export default function AdminPengaturanPage() {
                 <Input value="Terverifikasi (Session Active)" readOnly className="w-full opacity-80 cursor-not-allowed" />
               </Field>
               <Field label="Tipe Penyimpanan Data">
-                <Input value="Local File Persistence (data/*.json)" readOnly className="w-full opacity-80 cursor-not-allowed" />
+                <Input value="Database PostgreSQL (Supabase)" readOnly className="w-full opacity-80 cursor-not-allowed" />
               </Field>
               <Field label="Sinkronisasi Live">
                 <Input value="Aktif (Realtime Broadcast ke User)" readOnly className="w-full opacity-80 cursor-not-allowed" />

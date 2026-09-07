@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useCollection } from "@/lib/admin-collection";
 import { PageHeader, Field, Grid, Input, Textarea, Select, EmptyState, SaveBar, ModalWrapper } from "@/components/admin/ui";
-import { AgendaItem, AGENDA_LIST } from "@/lib/data";
+import type { AgendaItem } from "@/lib/data";
 import { motion, AnimatePresence } from "framer-motion";
 
 const TYPES = ["Rapat Kerja (Raker)", "Rapat Dengar Pendapat (RDP)", "Rapat Dengar Pendapat Umum (RDPU)", "Kunjungan Kerja Spesifik"];
@@ -26,6 +26,8 @@ const emptyAgenda = (): AgendaItem => ({
   pdfDownloadUrl: "#",
 });
 
+const EMPTY_AGENDA_LIST: AgendaItem[] = [];
+
 const statusBadge = (s: AgendaItem["status"]) => {
   if (s === "LIVE NOW") return "bg-dpr-emerald dark:bg-dpr-red text-white";
   if (s === "SCHEDULED") return "bg-amber-100 dark:bg-dpr-gold/20 text-amber-800 dark:text-dpr-gold border border-amber-300 dark:border-dpr-gold/40";
@@ -33,7 +35,7 @@ const statusBadge = (s: AgendaItem["status"]) => {
 };
 
 export default function AdminAgendaPage() {
-  const { data, setData, save, saving, saved } = useCollection<AgendaItem[]>("agenda", AGENDA_LIST);
+  const { data, setData, save, saving, saved } = useCollection<AgendaItem[]>("agenda", EMPTY_AGENDA_LIST);
   const [editing, setEditing] = useState<AgendaItem | null>(null);
   const [isNew, setIsNew] = useState(false);
 
