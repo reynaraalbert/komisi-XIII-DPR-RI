@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/api-auth";
 import { CmsData, defaultCollection } from "@/lib/cms-store";
-import { readDbCollection, writeDbCollection } from "@/lib/db-store";
+import { readDbCollectionSafe, writeDbCollection } from "@/lib/db-store";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Unknown collection" }, { status: 400, headers: NO_CACHE_HEADERS });
   }
 
-  const dbData = await readDbCollection(key);
+  const dbData = await readDbCollectionSafe(key);
   const data = dbData ?? defaultCollection(key);
   return NextResponse.json(data, { headers: NO_CACHE_HEADERS });
 }

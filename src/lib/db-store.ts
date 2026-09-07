@@ -9,10 +9,12 @@ export const isDbConnected = Boolean(process.env.DATABASE_URL);
  * Used by the admin UI to show an accurate "Terhubung / Tidak Terhubung" status
  * instead of silently falling back to static defaults.
  */
-export async function pingDb(timeoutMs = 4000): Promise<boolean> {
+export async function pingDb(timeoutMs = 8000): Promise<boolean> {
   if (!isDbConnected) return false;
   try {
     // Run against a timeout so the UI never hangs on a dead connection.
+    // Supabase (region ap-south-1) can need several seconds on a cold
+    // connection, so an 8s timeout avoids false "offline" readings.
     await Promise.race([
       prisma.$queryRaw`SELECT 1`,
       new Promise((_, reject) =>
@@ -23,6 +25,23 @@ export async function pingDb(timeoutMs = 4000): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Reads a collection from the database. On a single transient failure it
+ * retries once before giving up — this stops the CMS from flashing the static
+ * defaults on the very first (slow/cold) connection attempt.
+ */
+export async function readDbCollectionSafe<K extends keyof CmsData>(
+  key: K
+): Promise<CmsData[K] | null> {
+  const result = await readDbCollection(key);
+  if (result === null) {
+    // Transient failure (cold connection / busy pool) — retry once before
+    // falling back to the static defaults.
+    return readDbCollection(key);
+  }
+  return result;
 }
 
 export async function readDbCollection<K extends keyof CmsData>(key: K): Promise<CmsData[K] | null> {

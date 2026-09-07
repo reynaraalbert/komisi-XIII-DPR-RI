@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readDbCollection } from "@/lib/db-store";
+import { readDbCollectionSafe } from "@/lib/db-store";
 import { defaultCollection } from "@/lib/cms-store";
 
 export const dynamic = "force-dynamic";
@@ -11,14 +11,14 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   const [stats, anggota, pimpinan, mitraKerja, berita, agenda, pages, siteContent] = await Promise.all([
-    readDbCollection("stats"),
-    readDbCollection("anggota"),
-    readDbCollection("pimpinan"),
-    readDbCollection("mitraKerja"),
-    readDbCollection("berita"),
-    readDbCollection("agenda"),
-    readDbCollection("pages"),
-    readDbCollection("siteContent"),
+    readDbCollectionSafe("stats"),
+    readDbCollectionSafe("anggota"),
+    readDbCollectionSafe("pimpinan"),
+    readDbCollectionSafe("mitraKerja"),
+    readDbCollectionSafe("berita"),
+    readDbCollectionSafe("agenda"),
+    readDbCollectionSafe("pages"),
+    readDbCollectionSafe("siteContent"),
   ]);
 
   return NextResponse.json(
