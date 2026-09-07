@@ -2,86 +2,62 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { apiGet, apiPut } from "@/lib/admin-client";
-import { useSyncLive } from "@/components/admin/ui";
 
 /**
- * Loads a CMS collection and provides save state handling.
- * On save, pushes updates to the API which persists to the data/ directory
- * (so the public site reflects edits after a page refresh).
+ * Fast & responsive CMS collection hook.
  *
- * When Sync Live is active, changes are auto-saved after 800ms debounce.
+ * 1. `loaded` defaults to `true` so all admin forms render instantly (0ms delay).
+ * 2. Fetches background updates from server with a max 2-second timeout.
+ * 3. Auto-saves changes debounced 600ms on every edit.
+ * 4. Listens for global `cms-manual-save` event from header button.
  */
 export function useCollection<T>(collection: string, defaultValue: T) {
   const [data, setData] = useState<T>(defaultValue);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const { syncLive } = useSyncLive();
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const dataRef = useRef<T>(data);
-  const initialLoadRef = useRef(true);
 
-  // Keep dataRef in sync
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
 
+  // Background fetch without blocking initial form render
   useEffect(() => {
     let cancelled = false;
+
+    // Timeout guard: 2.0 seconds max
+    const timer = setTimeout(() => {
+      if (!cancelled) setLoaded(true);
+    }, 2000);
+
     apiGet<T>(`/api/data/${collection}`)
       .then((d) => {
-        if (!cancelled) {
+        if (!cancelled && d !== null && d !== undefined) {
           setData(d);
+          dataRef.current = d;
         }
       })
       .catch(() => {
-        // fall back to default on error
+        // Fall back gracefully to default value
       })
       .finally(() => {
-        if (!cancelled) {
-          setLoaded(true);
-          // Mark initial load complete after a tick
-          setTimeout(() => { initialLoadRef.current = false; }, 100);
-        }
+        clearTimeout(timer);
+        if (!cancelled) setLoaded(true);
       });
+
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [collection]);
-
-  // Auto-save when syncLive is active
-  useEffect(() => {
-    if (!syncLive || !loaded || initialLoadRef.current) return;
-
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-    debounceRef.current = setTimeout(async () => {
-      setSaving(true);
-      try {
-        await apiPut(`/api/data/${collection}`, dataRef.current);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 1500);
-      } catch {
-        // silently fail on auto-save
-      } finally {
-        setSaving(false);
-      }
-    }, 800);
-
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, [data, syncLive, loaded, collection]);
 
   const save = useCallback(async () => {
     setSaving(true);
     setSaved(false);
     try {
-      await apiPut(`/api/data/${collection}`, data);
+      await apiPut(`/api/data/${collection}`, dataRef.current);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
@@ -89,7 +65,43 @@ export function useCollection<T>(collection: string, defaultValue: T) {
     } finally {
       setSaving(false);
     }
-  }, [collection, data]);
+  }, [collection]);
 
-  return { data, setData, save, saving, saved, loaded };
+  // Handle header "Simpan Perubahan" click
+  useEffect(() => {
+    const handleManualSave = () => {
+      save();
+    };
+    window.addEventListener("cms-manual-save", handleManualSave);
+    return () => window.removeEventListener("cms-manual-save", handleManualSave);
+  }, [save]);
+
+  // Auto-save with 600ms debounce
+  const updateData = useCallback(
+    (valOrFn: T | ((prev: T) => T)) => {
+      setData((prev) => {
+        const next = typeof valOrFn === "function" ? (valOrFn as (prev: T) => T)(prev) : valOrFn;
+        dataRef.current = next;
+
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(async () => {
+          setSaving(true);
+          try {
+            await apiPut(`/api/data/${collection}`, next);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+          } catch {
+            // silent auto-save error catch
+          } finally {
+            setSaving(false);
+          }
+        }, 600);
+
+        return next;
+      });
+    },
+    [collection]
+  );
+
+  return { data, setData: updateData, save, saving, saved, loaded };
 }

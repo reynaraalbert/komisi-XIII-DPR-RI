@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Newspaper, CalendarDays, Users, Handshake, Home, LogOut,
   Menu, X, Sun, Moon, ExternalLink, Shield, Settings, ChevronRight,
   Inbox, MessageSquare, FileText, BarChart3, MapPin, PanelBottom, RefreshCw,
-  Sliders, User, Radio, BookOpen, Target
+  Sliders, User, Radio, BookOpen, Target, Save, CheckCircle2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "@/components/ThemeProvider";
@@ -332,20 +332,8 @@ function AdminShellContent({ children }: { children: React.ReactNode }) {
 
           {/* Right section: Sync Live + Theme + Preview */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Sync Live Toggle Button */}
-            <button
-              onClick={() => setSyncLive(!syncLive)}
-              className={`flex items-center gap-1.5 sm:gap-2 text-xs font-bold px-2.5 sm:px-3.5 py-2 rounded-xl border transition-all ${
-                syncLive
-                  ? "bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/30"
-                  : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10 hover:border-emerald-500"
-              }`}
-              title="Toggle Live Auto-Sync to User Site"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${syncLive ? "animate-spin" : ""}`} />
-              <span className="hidden sm:inline">Sync Live</span>
-              {syncLive && <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />}
-            </button>
+            {/* Simpan Perubahan Button */}
+            <HeaderSaveButton />
 
             {/* Theme toggle */}
             <button
@@ -372,6 +360,44 @@ function AdminShellContent({ children }: { children: React.ReactNode }) {
         <main className="flex-1 p-3 sm:p-5 lg:p-8 overflow-x-hidden">{children}</main>
       </div>
     </div>
+  );
+}
+
+function HeaderSaveButton() {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    setSaving(true);
+    setSaved(false);
+    window.dispatchEvent(new CustomEvent("cms-manual-save"));
+    setTimeout(() => {
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }, 500);
+  };
+
+  return (
+    <button
+      onClick={handleSave}
+      disabled={saving}
+      className={`flex items-center gap-1.5 sm:gap-2 text-xs font-bold px-3 sm:px-4 py-2 rounded-xl shadow-md transition-all ${
+        saved
+          ? "bg-emerald-600 text-white border border-emerald-500"
+          : "bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy border border-transparent hover:opacity-90 active:scale-95 cursor-pointer"
+      }`}
+      title="Simpan semua perubahan ke database dan update mode user"
+    >
+      {saving ? (
+        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+      ) : saved ? (
+        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+      ) : (
+        <Save className="w-3.5 h-3.5" />
+      )}
+      <span>{saved ? "Tersimpan!" : saving ? "Menyimpan..." : "Simpan Perubahan"}</span>
+    </button>
   );
 }
 
