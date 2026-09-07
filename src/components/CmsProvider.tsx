@@ -47,13 +47,20 @@ export function CmsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+
     async function load() {
       try {
-        const res = await fetch("/api/content", { cache: "no-store" });
+        const res = await fetch("/api/content", {
+          cache: "no-store",
+          headers: {
+            "Pragma": "no-cache",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+          },
+        });
         if (res.ok) {
           const data = await res.json();
           if (!cancelled) {
-            setContent({ ...DEFAULT_CONTENT, ...data });
+            setContent((prev) => ({ ...DEFAULT_CONTENT, ...prev, ...data }));
           }
         }
       } catch {
@@ -62,15 +69,38 @@ export function CmsProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setLoaded(true);
       }
     }
+
     load();
-    // Re-fetch every 2 seconds for near-realtime sync with CMS edits.
+
+    // Listen for instant 0ms BroadcastChannel updates from Admin edits across tabs
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      try {
+        bc = new BroadcastChannel("cms_sync_channel");
+        bc.onmessage = (event) => {
+          if (event.data?.collection && event.data?.data) {
+            const { collection, data } = event.data;
+            setContent((prev) => ({
+              ...prev,
+              [collection]: data,
+            }));
+          }
+        };
+      } catch {
+        // ignore
+      }
+    }
+
+    // Re-fetch every 2 seconds for near-realtime sync with CMS edits on server.
     const interval = setInterval(load, 2000);
     const onFocus = () => load();
     window.addEventListener("focus", onFocus);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
+      if (bc) bc.close();
     };
   }, []);
 
