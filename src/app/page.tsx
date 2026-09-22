@@ -181,51 +181,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* --- MITRA KERJA SHOWCASE --- */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="text-xs font-bold text-dpr-emerald-dark dark:text-dpr-gold uppercase tracking-widest">{mitraSection.tagline}</span>
-          <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white">{mitraSection.title}</h2>
-          <p className="text-slate-800 dark:text-slate-300 text-xs sm:text-sm font-medium">
-            {mitraSection.description}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {mitraKerja.map((mitra) => (
-            <motion.div
-              key={mitra.id}
-              whileHover={{ y: -5 }}
-              className="glass-panel p-6 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-dpr-emerald dark:hover:border-dpr-gold/40 transition-all space-y-4 flex flex-col justify-between"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="bg-emerald-100 dark:bg-dpr-gold/15 text-dpr-emerald-dark dark:text-dpr-gold font-bold text-xs px-3 py-1 rounded-full border border-emerald-300 dark:border-dpr-gold/30">
-                    {mitra.acronym}
-                  </span>
-                  <Building2 className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-                </div>
-                <h3 className="text-slate-900 dark:text-white font-bold text-base">{mitra.name}</h3>
-                <p className="text-slate-800 dark:text-slate-300 text-xs line-clamp-3 leading-relaxed">
-                  {mitra.description}
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-slate-200 dark:border-white/10 text-[11px] text-slate-700 dark:text-slate-400 font-medium">
-                Pimpinan: <span className="text-dpr-emerald-dark dark:text-dpr-gold font-bold">{mitra.ministerOrHead}</span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
       {/* --- LATEST NEWS & AGENDA SECTION --- */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
           <div>
-          <span className="text-xs font-bold text-dpr-emerald-dark dark:text-dpr-gold uppercase tracking-widest">INFORMASI TERKINI</span>
-          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Berita & Siaran Pers Komisi XIII</h2>
-        </div>
+            <span className="text-xs font-bold text-dpr-emerald-dark dark:text-dpr-gold uppercase tracking-widest">INFORMASI TERKINI</span>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Berita & Siaran Pers Komisi XIII</h2>
+          </div>
           <Link href="/berita" className="text-xs text-dpr-emerald-dark dark:text-dpr-gold font-bold hover:underline flex items-center gap-1">
             <span>Lihat Semua Berita</span>
             <ArrowRight className="w-4 h-4" />
@@ -261,6 +223,44 @@ export default function HomePage() {
                 <ArrowRight className="w-3.5 h-3.5" />
               </div>
             </div>
+          ))}
+        </div>
+      </section>
+
+      {/* --- MITRA KERJA SHOWCASE --- */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="text-center max-w-3xl mx-auto space-y-3">
+          <span className="text-xs font-bold text-dpr-emerald-dark dark:text-dpr-gold uppercase tracking-widest">{mitraSection.tagline}</span>
+          <h2 className="text-2xl sm:text-4xl font-bold text-slate-900 dark:text-white">{mitraSection.title}</h2>
+          <p className="text-slate-800 dark:text-slate-300 text-xs sm:text-sm font-medium">
+            {mitraSection.description}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {mitraKerja.map((mitra) => (
+            <motion.div
+              key={mitra.id}
+              whileHover={{ y: -5 }}
+              className="glass-panel p-6 rounded-2xl border border-slate-200 dark:border-white/10 hover:border-dpr-emerald dark:hover:border-dpr-gold/40 transition-all space-y-4 flex flex-col justify-between"
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="bg-emerald-100 dark:bg-dpr-gold/15 text-dpr-emerald-dark dark:text-dpr-gold font-bold text-xs px-3 py-1 rounded-full border border-emerald-300 dark:border-dpr-gold/30">
+                    {mitra.acronym}
+                  </span>
+                  <Building2 className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                </div>
+                <h3 className="text-slate-900 dark:text-white font-bold text-base">{mitra.name}</h3>
+                <p className="text-slate-800 dark:text-slate-300 text-xs line-clamp-3 leading-relaxed">
+                  {mitra.description}
+                </p>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 dark:border-white/10 text-[11px] text-slate-700 dark:text-slate-400 font-medium">
+                Pimpinan: <span className="text-dpr-emerald-dark dark:text-dpr-gold font-bold">{mitra.ministerOrHead}</span>
+              </div>
+            </motion.div>
           ))}
         </div>
       </section>
