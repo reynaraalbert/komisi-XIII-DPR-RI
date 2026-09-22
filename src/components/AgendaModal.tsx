@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AgendaItem } from "@/lib/data";
 import { X, Calendar, Clock, MapPin, Video, FileText, ShieldAlert, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,10 +12,29 @@ interface AgendaModalProps {
 }
 
 export default function AgendaModal({ agenda, onClose }: AgendaModalProps) {
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (agenda) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [agenda]);
+
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       {agenda && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 dark:bg-black/85 backdrop-blur-md">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 dark:bg-black/85 backdrop-blur-md">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -129,6 +149,7 @@ export default function AgendaModal({ agenda, onClose }: AgendaModalProps) {
         </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

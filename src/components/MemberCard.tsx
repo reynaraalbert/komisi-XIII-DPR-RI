@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { Member } from "@/lib/data";
 import { Shield, Mail, MapPin, Award, FileText, ChevronRight, X } from "lucide-react";
@@ -12,6 +13,22 @@ interface MemberCardProps {
 
 export default function MemberCard({ member }: MemberCardProps) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [modalOpen]);
 
   const getFraksiBadgeColor = (fraksi: string) => {
     switch (fraksi) {
@@ -100,79 +117,82 @@ export default function MemberCard({ member }: MemberCardProps) {
         </div>
       </motion.div>
 
-      <AnimatePresence>
-        {modalOpen && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 dark:bg-black/85 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-dpr-navy-card border border-slate-200 dark:border-dpr-gold/40 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative p-6 sm:p-8"
-            >
-              <button
-                onClick={() => setModalOpen(false)}
-                className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-800 dark:text-white transition-colors"
+      {mounted && createPortal(
+        <AnimatePresence>
+          {modalOpen && (
+            <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-950/80 dark:bg-black/85 backdrop-blur-md">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white dark:bg-dpr-navy-card border border-slate-200 dark:border-dpr-gold/40 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative p-6 sm:p-8"
               >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 border-b border-slate-200 dark:border-white/10 pb-6">
-                <div style={{ position: "relative" }} className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden border-2 border-dpr-emerald dark:border-dpr-gold shrink-0 shadow-md">
-                  <Image src={member.photoUrl} alt={member.name} fill className="object-cover object-top" />
-                </div>
-
-                <div className="space-y-2 text-center sm:text-left">
-                  <span className="inline-block bg-emerald-100 dark:bg-dpr-red/40 text-dpr-emerald-dark dark:text-dpr-gold text-xs font-bold px-3 py-1 rounded-full border border-dpr-emerald/30 dark:border-dpr-gold/40">
-                    {member.role}
-                  </span>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{member.name}</h2>
-                  <p className="text-dpr-emerald-dark dark:text-dpr-gold text-xs font-semibold">{member.fraksi} — {member.dapil}</p>
-                  
-                  <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-slate-700 dark:text-slate-300 pt-1 font-medium">
-                    <Mail className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
-                    <span>{member.email}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bio & Legislative Work */}
-              <div className="py-6 space-y-5 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-                <div>
-                  <h4 className="text-slate-900 dark:text-white font-bold text-base mb-2 flex items-center gap-2">
-                    <Award className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
-                    <span>Biografi & Rekam Jejak</span>
-                  </h4>
-                  <p className="bg-slate-50 dark:bg-dpr-navy p-4 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 leading-relaxed">{member.bio}</p>
-                </div>
-
-                <div>
-                  <h4 className="text-slate-900 dark:text-white font-bold text-base mb-2 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
-                    <span>RUU & Agenda Pengawasan yang Ditolak/Dikawal</span>
-                  </h4>
-                  <ul className="space-y-2">
-                    {member.billsLed.map((bill, idx) => (
-                      <li key={idx} className="flex items-center gap-2.5 bg-slate-50 dark:bg-dpr-navy/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-slate-200 font-medium">
-                        <Shield className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold shrink-0" />
-                        <span>{bill}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-200 dark:border-white/10 flex justify-end">
                 <button
                   onClick={() => setModalOpen(false)}
-                  className="bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs px-6 py-2.5 rounded-full shadow-md dark:shadow-gold-glow hover:opacity-90 transition-opacity"
+                  className="absolute top-5 right-5 p-2 rounded-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-800 dark:text-white transition-colors"
                 >
-                  Tutup Profil
+                  <X className="w-5 h-5" />
                 </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 border-b border-slate-200 dark:border-white/10 pb-6">
+                  <div style={{ position: "relative" }} className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden border-2 border-dpr-emerald dark:border-dpr-gold shrink-0 shadow-md">
+                    <Image src={member.photoUrl} alt={member.name} fill className="object-cover object-top" />
+                  </div>
+
+                  <div className="space-y-2 text-center sm:text-left">
+                    <span className="inline-block bg-emerald-100 dark:bg-dpr-red/40 text-dpr-emerald-dark dark:text-dpr-gold text-xs font-bold px-3 py-1 rounded-full border border-dpr-emerald/30 dark:border-dpr-gold/40">
+                      {member.role}
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{member.name}</h2>
+                    <p className="text-dpr-emerald-dark dark:text-dpr-gold text-xs font-semibold">{member.fraksi} — {member.dapil}</p>
+                    
+                    <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-slate-700 dark:text-slate-300 pt-1 font-medium">
+                      <Mail className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
+                      <span>{member.email}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bio & Legislative Work */}
+                <div className="py-6 space-y-5 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <div>
+                    <h4 className="text-slate-900 dark:text-white font-bold text-base mb-2 flex items-center gap-2">
+                      <Award className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
+                      <span>Biografi & Rekam Jejak</span>
+                    </h4>
+                    <p className="bg-slate-50 dark:bg-dpr-navy p-4 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-800 dark:text-slate-200 leading-relaxed">{member.bio}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="text-slate-900 dark:text-white font-bold text-base mb-2 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
+                      <span>RUU & Agenda Pengawasan yang Ditolak/Dikawal</span>
+                    </h4>
+                    <ul className="space-y-2">
+                      {member.billsLed.map((bill, idx) => (
+                        <li key={idx} className="flex items-center gap-2.5 bg-slate-50 dark:bg-dpr-navy/80 p-3 rounded-xl border border-slate-200 dark:border-white/10 text-xs text-slate-900 dark:text-slate-200 font-medium">
+                          <Shield className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold shrink-0" />
+                          <span>{bill}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200 dark:border-white/10 flex justify-end">
+                  <button
+                    onClick={() => setModalOpen(false)}
+                    className="bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold text-xs px-6 py-2.5 rounded-full shadow-md dark:shadow-gold-glow hover:opacity-90 transition-opacity"
+                  >
+                    Tutup Profil
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 }
