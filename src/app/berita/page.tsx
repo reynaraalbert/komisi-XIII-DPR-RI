@@ -16,7 +16,7 @@ export default function NewsPage() {
 
   const categories = ["Semua", "Legislasi", "Pengawasan", "Anggaran", "Siaran Pers", "Kunjungan Kerja"];
 
-  const featuredArticle = berita.find((a) => a.isFeatured) || berita[0];
+  const featuredArticle = berita.find((a) => a.isFeatured) || berita[0] || null;
 
   const filteredNews = berita.filter((article) => {
     const matchesCategory = selectedCategory === "Semua" || article.category === selectedCategory;
@@ -44,6 +44,7 @@ export default function NewsPage() {
       </div>
 
       {/* Featured News Hero Card */}
+      {featuredArticle && (
       <div
         onClick={() => setActiveArticle(featuredArticle)}
         className="glass-panel rounded-3xl overflow-hidden cursor-pointer border border-slate-200 dark:border-dpr-gold/30 hover:border-dpr-emerald dark:hover:border-dpr-gold transition-all shadow-2xl group grid grid-cols-1 lg:grid-cols-12 gap-0"
@@ -90,6 +91,7 @@ export default function NewsPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Filter & Search Bar */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-200 dark:border-white/10 space-y-4">

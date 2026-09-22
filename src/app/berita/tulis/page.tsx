@@ -18,6 +18,7 @@ export default function TulisBeritaPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [stepErrors, setStepErrors] = useState<string[]>([]);
 
   const [tipePenulis, setTipePenulis] = useState<TipePenulis>("umum");
   const [namaLengkap, setNamaLengkap] = useState("");
@@ -47,6 +48,54 @@ export default function TulisBeritaPage() {
   const removeSumber = (i: number) => setSumber(prev => prev.filter((_, idx) => idx !== i));
   const updateSumber = (i: number, field: keyof Sumber, value: string) => {
     setSumber(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: value } : s));
+  };
+
+  const validateStep1 = (): string[] => {
+    const errors: string[] = [];
+    if (!namaLengkap.trim()) errors.push("Nama Lengkap wajib diisi.");
+    if (!email.trim()) errors.push("Alamat Email wajib diisi.");
+    if (tipePenulis === "anggota_dpr") {
+      if (!nomorAnggota.trim()) errors.push("Nomor Anggota DPR RI wajib diisi.");
+      if (!fraksi.trim()) errors.push("Fraksi wajib dipilih.");
+      if (!dapil.trim()) errors.push("Daerah Pemilihan (Dapil) wajib diisi.");
+      if (!masaJabatan.trim()) errors.push("Masa Jabatan wajib diisi.");
+    }
+    if (tipePenulis === "pegawai_dpr") {
+      if (!nip.trim()) errors.push("NIP wajib diisi.");
+      if (!unitKerja.trim()) errors.push("Unit Kerja wajib diisi.");
+      if (!jabatan.trim()) errors.push("Jabatan / Pangkat wajib diisi.");
+    }
+    return errors;
+  };
+
+  const validateStep2 = (): string[] => {
+    const errors: string[] = [];
+    if (!judulBerita.trim()) errors.push("Judul / Headline Berita wajib diisi.");
+    if (!tanggal.trim()) errors.push("Tanggal Kejadian / Penulisan wajib diisi.");
+    if (!ringkasan.trim()) errors.push("Ringkasan / Lead Berita wajib diisi.");
+    if (!isiBerita.trim()) errors.push("Isi Berita Lengkap wajib diisi.");
+    return errors;
+  };
+
+  const goToStep = (target: 1 | 2 | 3) => {
+    // Hanya boleh kembali ke step sebelumnya, tidak boleh loncat maju
+    if (target >= step) return;
+    setStepErrors([]);
+    setStep(target);
+  };
+
+  const handleNextStep1 = () => {
+    const errors = validateStep1();
+    if (errors.length > 0) { setStepErrors(errors); return; }
+    setStepErrors([]);
+    setStep(2);
+  };
+
+  const handleNextStep2 = () => {
+    const errors = validateStep2();
+    if (errors.length > 0) { setStepErrors(errors); return; }
+    setStepErrors([]);
+    setStep(3);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,8 +184,13 @@ export default function TulisBeritaPage() {
         {[{ n: 1, label: "Biodata" }, { n: 2, label: "Konten" }, { n: 3, label: "Lampiran" }].map((s, i) => (
           <React.Fragment key={s.n}>
             <button
-              onClick={() => setStep(s.n as 1|2|3)}
-              className={`flex flex-col items-center gap-1 flex-1 transition-all ${step >= s.n ? "text-dpr-emerald dark:text-dpr-gold" : "text-slate-400"}`}
+              type="button"
+              onClick={() => goToStep(s.n as 1|2|3)}
+              disabled={s.n > step}
+              title={s.n > step ? "Selesaikan step sebelumnya terlebih dahulu" : undefined}
+              className={`flex flex-col items-center gap-1 flex-1 transition-all ${
+                step >= s.n ? "text-dpr-emerald dark:text-dpr-gold" : "text-slate-400"
+              } ${s.n > step ? "cursor-not-allowed opacity-60" : s.n < step ? "cursor-pointer" : "cursor-default"}`}
             >
               <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${step >= s.n ? "bg-dpr-emerald dark:bg-dpr-gold text-white dark:text-dpr-navy border-dpr-emerald dark:border-dpr-gold" : "border-slate-300 dark:border-slate-600 text-slate-400"}`}>{s.n}</span>
               <span className="text-xs font-semibold">{s.label}</span>
@@ -256,8 +310,15 @@ export default function TulisBeritaPage() {
                   </motion.div>
                 )}
 
+                {stepErrors.length > 0 && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700/40 rounded-xl p-4 space-y-1">
+                    {stepErrors.map((err, i) => (
+                      <p key={i} className="text-xs text-red-600 dark:text-red-400 font-medium">• {err}</p>
+                    ))}
+                  </div>
+                )}
                 <div className="flex justify-end pt-2">
-                  <button type="button" onClick={() => setStep(2)} className="flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold px-6 py-2.5 rounded-xl text-sm shadow-md hover:opacity-90 transition-all">
+                  <button type="button" onClick={handleNextStep1} className="flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold px-6 py-2.5 rounded-xl text-sm shadow-md hover:opacity-90 transition-all">
                     Lanjut ke Konten Berita <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
                   </button>
                 </div>
@@ -339,11 +400,18 @@ export default function TulisBeritaPage() {
                   ))}
                 </div>
 
+                {stepErrors.length > 0 && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700/40 rounded-xl p-4 space-y-1">
+                    {stepErrors.map((err, i) => (
+                      <p key={i} className="text-xs text-red-600 dark:text-red-400 font-medium">• {err}</p>
+                    ))}
+                  </div>
+                )}
                 <div className="flex justify-between pt-2">
-                  <button type="button" onClick={() => setStep(1)} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm border border-slate-300 dark:border-white/10">
+                  <button type="button" onClick={() => { setStepErrors([]); setStep(1); }} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm border border-slate-300 dark:border-white/10">
                     ← Kembali
                   </button>
-                  <button type="button" onClick={() => setStep(3)} className="flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold px-6 py-2.5 rounded-xl text-sm shadow-md hover:opacity-90 transition-all">
+                  <button type="button" onClick={handleNextStep2} className="flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient text-white dark:text-dpr-navy font-bold px-6 py-2.5 rounded-xl text-sm shadow-md hover:opacity-90 transition-all">
                     Lanjut ke Lampiran <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
                   </button>
                 </div>
@@ -399,7 +467,7 @@ export default function TulisBeritaPage() {
                 </div>
 
                 <div className="flex justify-between pt-2">
-                  <button type="button" onClick={() => setStep(2)} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm border border-slate-300 dark:border-white/10">
+                  <button type="button" onClick={() => { setStepErrors([]); setStep(2); }} className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold px-5 py-2.5 rounded-xl text-sm border border-slate-300 dark:border-white/10">
                     ← Kembali
                   </button>
                   <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-dpr-emerald dark:bg-gold-gradient hover:opacity-90 text-white dark:text-dpr-navy font-bold text-sm px-8 py-2.5 rounded-xl shadow-md transition-all disabled:opacity-50">
