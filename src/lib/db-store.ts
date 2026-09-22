@@ -28,16 +28,16 @@ export async function pingDb(timeoutMs = 8000): Promise<boolean> {
 }
 
 /**
- * Reads a collection from the database with a fast 2.5s timeout.
- * If DB is slow or unresponsive, immediately returns null so the API
- * can quickly fallback to default data without hanging the UI.
+ * Reads a collection from the database. Fast direct read with a 7s timeout
+ * so Supabase cold-start connections have enough time to establish on the first hit
+ * and return REAL data immediately.
  */
 export async function readDbCollectionSafe<K extends keyof CmsData>(
   key: K
 ): Promise<CmsData[K] | null> {
   try {
     const timeout = new Promise<null>((resolve) =>
-      setTimeout(() => resolve(null), 2500)
+      setTimeout(() => resolve(null), 7000)
     );
     const query = readDbCollection(key);
     return await Promise.race([query, timeout]);

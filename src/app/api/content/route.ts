@@ -5,11 +5,11 @@ import { defaultCollection } from "@/lib/cms-store";
 export const dynamic = "force-dynamic";
 
 let cachedContent: { data: any; timestamp: number } | null = null;
-const CACHE_TTL_MS = 5000; // 5 seconds in-memory cache
+const CACHE_TTL_MS = 10000; // 10 seconds in-memory cache
 
 /**
  * Public bulk endpoint — returns the full content dataset straight from the
- * database. Uses in-memory caching and SWR CDN headers for instant response times (<1s).
+ * database. Uses in-memory caching and Edge CDN headers for instant response times (<1s).
  */
 export async function GET() {
   const now = Date.now();
@@ -18,7 +18,7 @@ export async function GET() {
   if (cachedContent && now - cachedContent.timestamp < CACHE_TTL_MS) {
     return NextResponse.json(cachedContent.data, {
       headers: {
-        "Cache-Control": "public, s-maxage=2, stale-while-revalidate=15",
+        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=60",
       },
     });
   }
@@ -45,11 +45,15 @@ export async function GET() {
     pages: pages ?? defaultCollection("pages"),
   };
 
-  cachedContent = { data: payload, timestamp: now };
+  // Only update in-memory cache if at least some DB collections were retrieved
+  const hasRealData = Boolean(berita || anggota || mitraKerja || stats);
+  if (hasRealData || !cachedContent) {
+    cachedContent = { data: payload, timestamp: now };
+  }
 
   return NextResponse.json(payload, {
     headers: {
-      "Cache-Control": "public, s-maxage=2, stale-while-revalidate=15",
+      "Cache-Control": "public, s-maxage=10, stale-while-revalidate=60",
     },
   });
 }
