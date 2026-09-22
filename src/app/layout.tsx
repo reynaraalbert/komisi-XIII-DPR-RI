@@ -25,6 +25,13 @@ export const metadata: Metadata = {
     "Dewan Perwakilan Rakyat",
   ],
   authors: [{ name: "Komisi XIII DPR RI" }],
+  icons: {
+    icon: [
+      { url: "/images/logo-dpr.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/images/logo-dpr.svg",
+    apple: "/images/logo-dpr.svg",
+  },
 };
 
 export default function RootLayout({
