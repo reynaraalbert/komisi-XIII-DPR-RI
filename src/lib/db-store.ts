@@ -28,20 +28,22 @@ export async function pingDb(timeoutMs = 8000): Promise<boolean> {
 }
 
 /**
- * Reads a collection from the database. On a single transient failure it
- * retries once before giving up — this stops the CMS from flashing the static
- * defaults on the very first (slow/cold) connection attempt.
+ * Reads a collection from the database with a fast 2.5s timeout.
+ * If DB is slow or unresponsive, immediately returns null so the API
+ * can quickly fallback to default data without hanging the UI.
  */
 export async function readDbCollectionSafe<K extends keyof CmsData>(
   key: K
 ): Promise<CmsData[K] | null> {
-  const result = await readDbCollection(key);
-  if (result === null) {
-    // Transient failure (cold connection / busy pool) — retry once before
-    // falling back to the static defaults.
-    return readDbCollection(key);
+  try {
+    const timeout = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), 2500)
+    );
+    const query = readDbCollection(key);
+    return await Promise.race([query, timeout]);
+  } catch {
+    return null;
   }
-  return result;
 }
 
 export async function readDbCollection<K extends keyof CmsData>(key: K): Promise<CmsData[K] | null> {
@@ -101,7 +103,7 @@ export async function readDbCollection<K extends keyof CmsData>(key: K): Promise
         return null;
     }
   } catch (err) {
-    console.warn(`[Prisma DB Read Warning] Fallback to JSON for ${key}:`, (err as Error).message);
+    console.warn(`[Prisma DB Read Warning] Fallback to static data for ${key}:`, (err as Error).message);
     return null;
   }
 }

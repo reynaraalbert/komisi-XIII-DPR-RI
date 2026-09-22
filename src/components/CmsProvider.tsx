@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import type { SiteContent, Member, NewsArticle, AgendaItem, MitraKerja, PageContent } from "@/lib/data";
 import { EMPTY_STATS, EMPTY_SITECONTENT } from "@/lib/defaults";
 
+import { defaultCollection } from "@/lib/cms-store";
+
 export interface CmsContent {
   stats: { totalMembers: number; totalPimpinan: number; mitraKerjaCount: number; activeBills: number; completedHearings: number; aspirationsProcessed: number };
   anggota: Member[];
@@ -15,15 +17,15 @@ export interface CmsContent {
   pages: PageContent[];
 }
 
-const EMPTY_CONTENT: CmsContent = {
-  stats: EMPTY_STATS,
-  anggota: [],
-  pimpinan: [],
-  mitraKerja: [],
-  berita: [],
-  agenda: [],
-  siteContent: EMPTY_SITECONTENT,
-  pages: [],
+const INITIAL_CONTENT: CmsContent = {
+  stats: defaultCollection("stats"),
+  anggota: defaultCollection("anggota"),
+  pimpinan: defaultCollection("pimpinan"),
+  mitraKerja: defaultCollection("mitraKerja"),
+  berita: defaultCollection("berita"),
+  agenda: defaultCollection("agenda"),
+  siteContent: defaultCollection("siteContent"),
+  pages: defaultCollection("pages"),
 };
 
 interface CmsContextValue {
@@ -31,19 +33,16 @@ interface CmsContextValue {
   loaded: boolean;
 }
 
-const CmsContext = createContext<CmsContextValue>({ content: EMPTY_CONTENT, loaded: false });
+const CmsContext = createContext<CmsContextValue>({ content: INITIAL_CONTENT, loaded: false });
 
 export function CmsProvider({ children }: { children: ReactNode }) {
-  const [content, setContent] = useState<CmsContent>(EMPTY_CONTENT);
+  const [content, setContent] = useState<CmsContent>(INITIAL_CONTENT);
   const [loaded, setLoaded] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchContent = useCallback(async () => {
     try {
-      const res = await fetch("/api/content", {
-        cache: "no-store",
-        headers: { "Cache-Control": "no-cache, no-store, must-revalidate", Pragma: "no-cache" },
-      });
+      const res = await fetch("/api/content");
       if (res.ok) {
         const data = await res.json();
         setContent((prev) => {
@@ -68,9 +67,9 @@ export function CmsProvider({ children }: { children: ReactNode }) {
     const isAdminPage = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
     fetchContent();
 
-    // Poll for changes every 3 seconds (public pages only; admin has its own live sync)
+    // Poll for changes every 15 seconds (public pages; admin uses live BroadcastChannel sync)
     if (!isAdminPage) {
-      intervalRef.current = setInterval(fetchContent, 3000);
+      intervalRef.current = setInterval(fetchContent, 15000);
     }
 
     // BroadcastChannel for instant admin→user sync across tabs
