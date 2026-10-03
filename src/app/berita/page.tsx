@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { NewsArticle } from "@/lib/data";
 import { useCmsContent } from "@/components/CmsProvider";
@@ -25,6 +25,19 @@ export default function NewsPage() {
       article.summary.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && berita.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const articleId = params.get("berita");
+      if (articleId) {
+        const found = berita.find((b) => b.id === articleId);
+        if (found) {
+          setActiveArticle(found);
+        }
+      }
+    }
+  }, [berita]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">

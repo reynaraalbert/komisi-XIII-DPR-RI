@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { NewsArticle } from "@/lib/data";
-import { X, Calendar, Clock, Share2, Download, Link2, MessageCircle, Twitter, Facebook } from "lucide-react";
+import { X, Calendar, Clock, Share2, Download, Link2, MessageCircle, Twitter, Facebook, Instagram } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NewsModalProps {
@@ -106,7 +106,8 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
                   >
                     <button 
                       onClick={() => {
-                        navigator.clipboard.writeText(window.location.href);
+                        const shareUrl = `${window.location.origin}?berita=${article?.id}`;
+                        navigator.clipboard.writeText(shareUrl);
                         setShowShare(false);
                         alert("Tautan disalin!");
                       }}
@@ -117,7 +118,8 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
                     </button>
                     <button 
                       onClick={() => {
-                        const text = `Baca siaran pers: ${article?.title}\n${window.location.href}`;
+                        const shareUrl = `${window.location.origin}?berita=${article?.id}`;
+                        const text = `Baca siaran pers: ${article?.title}\n${shareUrl}`;
                         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                         setShowShare(false);
                       }}
@@ -127,9 +129,33 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
                       WhatsApp
                     </button>
                     <button 
+                      onClick={async () => {
+                        const shareUrl = `${window.location.origin}?berita=${article?.id}`;
+                        if (navigator.share) {
+                          try {
+                            await navigator.share({
+                              title: article?.title,
+                              text: `Baca siaran pers: ${article?.title}`,
+                              url: shareUrl
+                            });
+                          } catch (e) {
+                            console.log('Share error', e);
+                          }
+                        } else {
+                          alert("Browser Anda tidak mendukung fitur berbagi langsung. Silakan Salin Tautan.");
+                        }
+                        setShowShare(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-left"
+                    >
+                      <Instagram className="w-4 h-4" />
+                      Instagram
+                    </button>
+                    <button 
                       onClick={() => {
+                        const shareUrl = `${window.location.origin}?berita=${article?.id}`;
                         const text = `Baca siaran pers: ${article?.title}`;
-                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`, '_blank');
+                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
                         setShowShare(false);
                       }}
                       className="flex items-center gap-3 px-4 py-3 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-left"
@@ -139,7 +165,8 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
                     </button>
                     <button 
                       onClick={() => {
-                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+                        const shareUrl = `${window.location.origin}?berita=${article?.id}`;
+                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
                         setShowShare(false);
                       }}
                       className="flex items-center gap-3 px-4 py-3 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-left"

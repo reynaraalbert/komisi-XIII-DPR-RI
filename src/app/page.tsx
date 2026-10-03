@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { NewsArticle, AgendaItem } from "@/lib/data";
@@ -21,6 +21,19 @@ export default function HomePage() {
   const kontak = siteContent.kontak;
   const maps = siteContent.maps;
   const liveAgenda = agenda.find((a) => a.status === "LIVE NOW") || null;
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && berita.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const articleId = params.get("berita");
+      if (articleId) {
+        const found = berita.find((b) => b.id === articleId);
+        if (found) {
+          setSelectedNews(found);
+        }
+      }
+    }
+  }, [berita]);
 
   return (
     <div className="space-y-20 pb-20">
