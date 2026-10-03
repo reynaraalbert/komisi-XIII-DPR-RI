@@ -106,7 +106,7 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
                   >
                     <button 
                       onClick={() => {
-                        const shareUrl = `${window.location.origin}?berita=${article?.id}`;
+                        const shareUrl = `${window.location.origin}/berita/share/${article?.id}`;
                         navigator.clipboard.writeText(shareUrl);
                         setShowShare(false);
                         alert("Tautan disalin!");
@@ -118,7 +118,7 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
                     </button>
                     <button 
                       onClick={() => {
-                        const shareUrl = `${window.location.origin}?berita=${article?.id}`;
+                        const shareUrl = `${window.location.origin}/berita/share/${article?.id}`;
                         const text = `Baca siaran pers: ${article?.title}\n${shareUrl}`;
                         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                         setShowShare(false);
@@ -130,7 +130,7 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
                     </button>
                     <button 
                       onClick={async () => {
-                        const shareUrl = `${window.location.origin}?berita=${article?.id}`;
+                        const shareUrl = `${window.location.origin}/berita/share/${article?.id}`;
                         if (navigator.share) {
                           try {
                             await navigator.share({
@@ -153,7 +153,7 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
                     </button>
                     <button 
                       onClick={() => {
-                        const shareUrl = `${window.location.origin}?berita=${article?.id}`;
+                        const shareUrl = `${window.location.origin}/berita/share/${article?.id}`;
                         const text = `Baca siaran pers: ${article?.title}`;
                         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
                         setShowShare(false);
@@ -165,7 +165,7 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
                     </button>
                     <button 
                       onClick={() => {
-                        const shareUrl = `${window.location.origin}?berita=${article?.id}`;
+                        const shareUrl = `${window.location.origin}/berita/share/${article?.id}`;
                         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
                         setShowShare(false);
                       }}
