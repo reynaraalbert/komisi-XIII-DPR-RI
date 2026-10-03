@@ -39,8 +39,10 @@ export function CmsProvider({ children }: { children: ReactNode }) {
   const [content, setContent] = useState<CmsContent>(INITIAL_CONTENT);
   const [loaded, setLoaded] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchRef = useRef(0);
 
   const fetchContent = useCallback(async () => {
+    lastFetchRef.current = Date.now();
     try {
       const res = await fetch("/api/content");
       if (res.ok) {
@@ -67,9 +69,13 @@ export function CmsProvider({ children }: { children: ReactNode }) {
     const isAdminPage = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
     fetchContent();
 
-    // Poll for changes every 15 seconds (public pages; admin uses live BroadcastChannel sync)
+    // Poll for changes every 5 minutes (public pages; admin uses live BroadcastChannel sync).
+    // Previously 15s, which made every open tab hammer the database. Hidden tabs skip polling.
     if (!isAdminPage) {
-      intervalRef.current = setInterval(fetchContent, 15000);
+      intervalRef.current = setInterval(() => {
+        if (document.hidden) return;
+        fetchContent();
+      }, 5 * 60 * 1000);
     }
 
     // BroadcastChannel for instant admin→user sync across tabs
@@ -86,7 +92,10 @@ export function CmsProvider({ children }: { children: ReactNode }) {
       // ignore
     }
 
-    const onFocus = () => fetchContent();
+    // Refetch on focus, but at most once per minute.
+    const onFocus = () => {
+      if (Date.now() - lastFetchRef.current > 60 * 1000) fetchContent();
+    };
     window.addEventListener("focus", onFocus);
 
     return () => {

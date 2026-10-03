@@ -108,6 +108,117 @@ export async function readDbCollection<K extends keyof CmsData>(key: K): Promise
   }
 }
 
+/**
+ * SQL fragment that swaps an inline base64 data-URL for a short, cacheable
+ * /api/media URL *inside the database query*, so the heavy blob is never
+ * transferred out of Supabase. Normal URLs / NULLs pass through untouched.
+ * The `v` param (row updatedAt) changes whenever the row is edited.
+ */
+function mediaCol(kind: string, col: string): string {
+  return (
+    `CASE WHEN "${col}" LIKE 'data:%' ` +
+    `THEN '/api/media/${kind}/' || "id" || '/${col}?v=' || (extract(epoch from "updatedAt")::bigint)::text ` +
+    `ELSE "${col}" END AS "${col}"`
+  );
+}
+
+const MEMBER_COLS = (
+  `"id","nomorAnggota","name","role","fraksi","dapil",${mediaCol("member", "photoUrl")},` +
+  `"email","bio","billsLed","pendidikan","masaJabatan","komisi","createdAt","updatedAt"`
+);
+
+const PUBLIC_QUERIES: Partial<Record<keyof CmsData, string>> = {
+  berita:
+    `SELECT "id","title","slug","category","date","readTime","author","summary","content",` +
+    `${mediaCol("berita", "imageUrl")},${mediaCol("berita", "documentUrl")},` +
+    `"isFeatured","createdAt","updatedAt" FROM "NewsArticle" ORDER BY "createdAt" DESC`,
+  anggota: `SELECT ${MEMBER_COLS} FROM "Member" ORDER BY "createdAt" ASC`,
+  pimpinan: `SELECT ${MEMBER_COLS} FROM "Member" WHERE "role" IN ('Ketua Komisi','Wakil Ketua Komisi')`,
+  mitraKerja:
+    `SELECT "id","name","acronym","ministerOrHead","focusArea",${mediaCol("mitra", "logoUrl")},` +
+    `"description","createdAt","updatedAt" FROM "MitraKerja"`,
+  agenda:
+    `SELECT "id","title","type","partner","date","time","location","status","summary","streamUrl",` +
+    `${mediaCol("agenda", "pdfDownloadUrl")},"createdAt","updatedAt" FROM "AgendaItem" ORDER BY "createdAt" DESC`,
+};
+
+/**
+ * Public (visitor-facing) read. Same shape as readDbCollectionSafe, but media
+ * columns are returned as lightweight URLs instead of base64. NEVER use this
+ * for the admin editor: writing these URLs back would replace the stored
+ * images. Collections without heavy media fall back to the normal reader.
+ */
+export async function readPublicCollectionSafe<K extends keyof CmsData>(
+  key: K
+): Promise<CmsData[K] | null> {
+  const sql = PUBLIC_QUERIES[key];
+  if (!sql) return readDbCollectionSafe(key);
+  if (!isDbConnected) return null;
+
+  try {
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 7000));
+    const query = prisma.$queryRawUnsafe(sql).then((rows) => rows as unknown as CmsData[K]);
+    return await Promise.race([query, timeout]);
+  } catch (err) {
+    console.warn(`[Prisma DB Public Read Warning] ${key}:`, (err as Error).message);
+    return null;
+  }
+}
+
+
+/**
+ * Writes only rows that are new or actually changed.
+ *
+ * The old implementation upserted EVERY row on every admin save. Many rows
+ * carry large base64 images/documents, and every UPDATE in PostgreSQL leaves a
+ * dead copy of the row (and of its TOASTed blobs) until vacuumed — which
+ * inflated the database far beyond the real amount of data. Skipping unchanged
+ * rows avoids that churn entirely.
+ *
+ * `toData` returns the writable columns for an item. Comparison is
+ * conservative: if anything looks different (e.g. JSON key order), the row is
+ * simply updated, never skipped.
+ */
+async function syncRows(
+  delegate: any,
+  items: any[],
+  toData: (item: any) => Record<string, any>,
+  options: { whereKey?: "id" | "slug" } = {}
+): Promise<void> {
+  const whereKey = options.whereKey ?? "id";
+  const existing: any[] = await delegate.findMany();
+  const byKey = new Map<string, any>(existing.map((row) => [row[whereKey], row]));
+
+  for (const item of items) {
+    const data = toData(item);
+    const prev = byKey.get(item[whereKey]);
+    if (prev) {
+      const unchanged = Object.keys(data).every(
+        (k) => JSON.stringify(prev[k] ?? null) === JSON.stringify(data[k] ?? null)
+      );
+      if (unchanged) continue;
+      await delegate.update({ where: { [whereKey]: item[whereKey] }, data });
+    } else {
+      await delegate.create({ data: { id: item.id, ...(whereKey === "slug" ? { slug: item.slug } : {}), ...data } });
+    }
+  }
+}
+
+const memberData = (item: any) => ({
+  nomorAnggota: item.nomorAnggota,
+  name: item.name,
+  role: item.role,
+  fraksi: item.fraksi,
+  dapil: item.dapil,
+  photoUrl: item.photoUrl,
+  email: item.email,
+  bio: item.bio,
+  billsLed: item.billsLed,
+  pendidikan: item.pendidikan || null,
+  masaJabatan: item.masaJabatan || null,
+  komisi: item.komisi || null,
+});
+
 export async function writeDbCollection<K extends keyof CmsData>(key: K, value: CmsData[K]): Promise<boolean> {
   if (!isDbConnected) return false;
 
@@ -116,38 +227,19 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
       case "berita": {
         const items = value as CmsData["berita"];
         const ids = items.map((item) => item.id);
-        for (const item of items) {
-          await prisma.newsArticle.upsert({
-            where: { id: item.id },
-            update: {
-              title: item.title,
-              slug: item.slug,
-              category: item.category,
-              date: item.date,
-              readTime: item.readTime,
-              author: item.author,
-              summary: item.summary,
-              content: item.content,
-              imageUrl: item.imageUrl,
-              documentUrl: item.documentUrl || null,
-              isFeatured: item.isFeatured || false,
-            },
-            create: {
-              id: item.id,
-              title: item.title,
-              slug: item.slug,
-              category: item.category,
-              date: item.date,
-              readTime: item.readTime,
-              author: item.author,
-              summary: item.summary,
-              content: item.content,
-              imageUrl: item.imageUrl,
-              documentUrl: item.documentUrl || null,
-              isFeatured: item.isFeatured || false,
-            },
-          });
-        }
+        await syncRows(prisma.newsArticle, items, (item) => ({
+          title: item.title,
+          slug: item.slug,
+          category: item.category,
+          date: item.date,
+          readTime: item.readTime,
+          author: item.author,
+          summary: item.summary,
+          content: item.content,
+          imageUrl: item.imageUrl,
+          documentUrl: item.documentUrl || null,
+          isFeatured: item.isFeatured || false,
+        }));
         // Safety: only prune rows NOT in the incoming list when the list is
         // non-empty. An empty list usually means the CMS loaded static defaults
         // (DB read failed) — pruning then would wipe every real row.
@@ -159,36 +251,18 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
       case "agenda": {
         const items = value as CmsData["agenda"];
         const ids = items.map((item) => item.id);
-        for (const item of items) {
-          await prisma.agendaItem.upsert({
-            where: { id: item.id },
-            update: {
-              title: item.title,
-              type: item.type,
-              partner: item.partner,
-              date: item.date,
-              time: item.time,
-              location: item.location,
-              status: item.status,
-              summary: item.summary,
-              streamUrl: item.streamUrl || null,
-              pdfDownloadUrl: item.pdfDownloadUrl || null,
-            },
-            create: {
-              id: item.id,
-              title: item.title,
-              type: item.type,
-              partner: item.partner,
-              date: item.date,
-              time: item.time,
-              location: item.location,
-              status: item.status,
-              summary: item.summary,
-              streamUrl: item.streamUrl || null,
-              pdfDownloadUrl: item.pdfDownloadUrl || null,
-            },
-          });
-        }
+        await syncRows(prisma.agendaItem, items, (item) => ({
+          title: item.title,
+          type: item.type,
+          partner: item.partner,
+          date: item.date,
+          time: item.time,
+          location: item.location,
+          status: item.status,
+          summary: item.summary,
+          streamUrl: item.streamUrl || null,
+          pdfDownloadUrl: item.pdfDownloadUrl || null,
+        }));
         if (ids.length > 0) {
           await prisma.agendaItem.deleteMany({ where: { id: { notIn: ids } } });
         }
@@ -197,40 +271,7 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
       case "anggota": {
         const items = value as CmsData["anggota"];
         const ids = items.map((item) => item.id);
-        for (const item of items) {
-          await prisma.member.upsert({
-            where: { id: item.id },
-            update: {
-              nomorAnggota: item.nomorAnggota,
-              name: item.name,
-              role: item.role,
-              fraksi: item.fraksi,
-              dapil: item.dapil,
-              photoUrl: item.photoUrl,
-              email: item.email,
-              bio: item.bio,
-              billsLed: item.billsLed,
-              pendidikan: item.pendidikan || null,
-              masaJabatan: item.masaJabatan || null,
-              komisi: item.komisi || null,
-            },
-            create: {
-              id: item.id,
-              nomorAnggota: item.nomorAnggota,
-              name: item.name,
-              role: item.role,
-              fraksi: item.fraksi,
-              dapil: item.dapil,
-              photoUrl: item.photoUrl,
-              email: item.email,
-              bio: item.bio,
-              billsLed: item.billsLed,
-              pendidikan: item.pendidikan || null,
-              masaJabatan: item.masaJabatan || null,
-              komisi: item.komisi || null,
-            },
-          });
-        }
+        await syncRows(prisma.member, items, memberData);
         if (ids.length > 0) {
           await prisma.member.deleteMany({ where: { id: { notIn: ids } } });
         }
@@ -239,40 +280,7 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
       case "pimpinan": {
         const items = value as CmsData["pimpinan"];
         const ids = items.map((item) => item.id);
-        for (const item of items) {
-          await prisma.member.upsert({
-            where: { id: item.id },
-            update: {
-              nomorAnggota: item.nomorAnggota,
-              name: item.name,
-              role: item.role,
-              fraksi: item.fraksi,
-              dapil: item.dapil,
-              photoUrl: item.photoUrl,
-              email: item.email,
-              bio: item.bio,
-              billsLed: item.billsLed,
-              pendidikan: item.pendidikan || null,
-              masaJabatan: item.masaJabatan || null,
-              komisi: item.komisi || null,
-            },
-            create: {
-              id: item.id,
-              nomorAnggota: item.nomorAnggota,
-              name: item.name,
-              role: item.role,
-              fraksi: item.fraksi,
-              dapil: item.dapil,
-              photoUrl: item.photoUrl,
-              email: item.email,
-              bio: item.bio,
-              billsLed: item.billsLed,
-              pendidikan: item.pendidikan || null,
-              masaJabatan: item.masaJabatan || null,
-              komisi: item.komisi || null,
-            },
-          });
-        }
+        await syncRows(prisma.member, items, memberData);
         if (ids.length > 0) {
           await prisma.member.deleteMany({
             where: { role: { in: ["Ketua Komisi", "Wakil Ketua Komisi"] }, id: { notIn: ids } },
@@ -283,28 +291,14 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
       case "mitraKerja": {
         const items = value as CmsData["mitraKerja"];
         const ids = items.map((item) => item.id);
-        for (const item of items) {
-          await prisma.mitraKerja.upsert({
-            where: { id: item.id },
-            update: {
-              name: item.name,
-              acronym: item.acronym,
-              ministerOrHead: item.ministerOrHead,
-              focusArea: item.focusArea,
-              logoUrl: item.logoUrl,
-              description: item.description,
-            },
-            create: {
-              id: item.id,
-              name: item.name,
-              acronym: item.acronym,
-              ministerOrHead: item.ministerOrHead,
-              focusArea: item.focusArea,
-              logoUrl: item.logoUrl,
-              description: item.description,
-            },
-          });
-        }
+        await syncRows(prisma.mitraKerja, items, (item) => ({
+          name: item.name,
+          acronym: item.acronym,
+          ministerOrHead: item.ministerOrHead,
+          focusArea: item.focusArea,
+          logoUrl: item.logoUrl,
+          description: item.description,
+        }));
         if (ids.length > 0) {
           await prisma.mitraKerja.deleteMany({ where: { id: { notIn: ids } } });
         }
@@ -313,34 +307,17 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
       case "aspirasi": {
         const items = value as CmsData["aspirasi"];
         const ids = items.map((item) => item.id);
-        for (const item of items) {
-          await prisma.aspirasi.upsert({
-            where: { id: item.id },
-            update: {
-              mode: item.mode,
-              name: item.name || null,
-              email: item.email || null,
-              whatsapp: item.whatsapp || null,
-              subject: item.subject,
-              message: item.message,
-              category: item.category,
-              status: item.status,
-              createdAt: item.createdAt,
-            },
-            create: {
-              id: item.id,
-              mode: item.mode,
-              name: item.name || null,
-              email: item.email || null,
-              whatsapp: item.whatsapp || null,
-              subject: item.subject,
-              message: item.message,
-              category: item.category,
-              status: item.status,
-              createdAt: item.createdAt,
-            },
-          });
-        }
+        await syncRows(prisma.aspirasi, items, (item) => ({
+          mode: item.mode,
+          name: item.name || null,
+          email: item.email || null,
+          whatsapp: item.whatsapp || null,
+          subject: item.subject,
+          message: item.message,
+          category: item.category,
+          status: item.status,
+          createdAt: item.createdAt,
+        }));
         if (ids.length > 0) {
           await prisma.aspirasi.deleteMany({ where: { id: { notIn: ids } } });
         }
@@ -348,21 +325,12 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
       }
       case "pages": {
         const pages = value as CmsData["pages"];
-        for (const page of pages) {
-          await prisma.pageContent.upsert({
-            where: { slug: page.slug },
-            update: {
-              title: page.title,
-              sections: page.sections as any,
-            },
-            create: {
-              id: page.id,
-              slug: page.slug,
-              title: page.title,
-              sections: page.sections as any,
-            },
-          });
-        }
+        await syncRows(
+          prisma.pageContent,
+          pages,
+          (page) => ({ title: page.title, sections: page.sections as any }),
+          { whereKey: "slug" }
+        );
         return true;
       }
       case "stats": {
@@ -379,6 +347,11 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
       }
       case "siteContent": {
         const data = value as CmsData["siteContent"];
+        const prev = await prisma.pageContent.findUnique({ where: { slug: "siteContent" } });
+        // Skip the write entirely when nothing changed.
+        if (prev && JSON.stringify(prev.sections) === JSON.stringify(data)) {
+          return true;
+        }
         await prisma.pageContent.upsert({
           where: { slug: "siteContent" },
           update: {
@@ -397,28 +370,14 @@ export async function writeDbCollection<K extends keyof CmsData>(key: K, value: 
       case "submissions": {
         const items = value as CmsData["submissions"];
         const ids = items.map((item) => item.id);
-        for (const item of items) {
-          await prisma.newsSubmission.upsert({
-            where: { id: item.id },
-            update: {
-              biodata: item.biodata as any,
-              artikel: item.artikel as any,
-              attachments: item.attachments as any,
-              status: item.status,
-              proofreadNotes: item.proofreadNotes || null,
-              createdAt: item.createdAt,
-            },
-            create: {
-              id: item.id,
-              biodata: item.biodata as any,
-              artikel: item.artikel as any,
-              attachments: item.attachments as any,
-              status: item.status,
-              proofreadNotes: item.proofreadNotes || null,
-              createdAt: item.createdAt,
-            },
-          });
-        }
+        await syncRows(prisma.newsSubmission, items, (item) => ({
+          biodata: item.biodata as any,
+          artikel: item.artikel as any,
+          attachments: item.attachments as any,
+          status: item.status,
+          proofreadNotes: item.proofreadNotes || null,
+          createdAt: item.createdAt,
+        }));
         if (ids.length > 0) {
           await prisma.newsSubmission.deleteMany({ where: { id: { notIn: ids } } });
         }

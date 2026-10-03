@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/api-auth";
 import { CmsData, defaultCollection } from "@/lib/cms-store";
 import { readDbCollectionSafe, writeDbCollection } from "@/lib/db-store";
+import { clearContentCache } from "@/lib/content-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
   if (!ok) {
     return NextResponse.json({ error: "Gagal menyimpan ke database" }, { status: 500, headers: NO_CACHE_HEADERS });
   }
+
+  clearContentCache();
 
   try {
     revalidatePath("/", "layout");

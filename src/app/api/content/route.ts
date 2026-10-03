@@ -1,37 +1,41 @@
 import { NextResponse } from "next/server";
-import { readDbCollectionSafe } from "@/lib/db-store";
+import { readPublicCollectionSafe } from "@/lib/db-store";
 import { defaultCollection } from "@/lib/cms-store";
+import {
+  getCachedContent,
+  hasAnyCachedContent,
+  setCachedContent,
+} from "@/lib/content-cache";
 
 export const dynamic = "force-dynamic";
 
-let cachedContent: { data: any; timestamp: number } | null = null;
-const CACHE_TTL_MS = 10000; // 10 seconds in-memory cache
+// CDN/browser cache: keep Supabase egress low. The in-memory cache is cleared
+// immediately when an admin saves, so edits show up quickly on this instance.
+const CACHE_HEADERS = {
+  "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+};
 
 /**
  * Public bulk endpoint — returns the full content dataset straight from the
- * database. Uses in-memory caching and Edge CDN headers for instant response times (<1s).
+ * database. Uses in-memory caching and Edge CDN headers so the database is
+ * read at most once per cache window rather than on every visit.
  */
 export async function GET() {
-  const now = Date.now();
-
   // Serve from in-memory cache if fresh
-  if (cachedContent && now - cachedContent.timestamp < CACHE_TTL_MS) {
-    return NextResponse.json(cachedContent.data, {
-      headers: {
-        "Cache-Control": "public, s-maxage=10, stale-while-revalidate=60",
-      },
-    });
+  const fresh = getCachedContent();
+  if (fresh) {
+    return NextResponse.json(fresh, { headers: CACHE_HEADERS });
   }
 
   const [stats, anggota, pimpinan, mitraKerja, berita, agenda, pages, siteContent] = await Promise.all([
-    readDbCollectionSafe("stats"),
-    readDbCollectionSafe("anggota"),
-    readDbCollectionSafe("pimpinan"),
-    readDbCollectionSafe("mitraKerja"),
-    readDbCollectionSafe("berita"),
-    readDbCollectionSafe("agenda"),
-    readDbCollectionSafe("pages"),
-    readDbCollectionSafe("siteContent"),
+    readPublicCollectionSafe("stats"),
+    readPublicCollectionSafe("anggota"),
+    readPublicCollectionSafe("pimpinan"),
+    readPublicCollectionSafe("mitraKerja"),
+    readPublicCollectionSafe("berita"),
+    readPublicCollectionSafe("agenda"),
+    readPublicCollectionSafe("pages"),
+    readPublicCollectionSafe("siteContent"),
   ]);
 
   const payload = {
@@ -47,13 +51,9 @@ export async function GET() {
 
   // Only update in-memory cache if at least some DB collections were retrieved
   const hasRealData = Boolean(berita || anggota || mitraKerja || stats);
-  if (hasRealData || !cachedContent) {
-    cachedContent = { data: payload, timestamp: now };
+  if (hasRealData || !hasAnyCachedContent()) {
+    setCachedContent(payload);
   }
 
-  return NextResponse.json(payload, {
-    headers: {
-      "Cache-Control": "public, s-maxage=10, stale-while-revalidate=60",
-    },
-  });
+  return NextResponse.json(payload, { headers: CACHE_HEADERS });
 }

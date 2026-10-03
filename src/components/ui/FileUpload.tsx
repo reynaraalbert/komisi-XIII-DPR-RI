@@ -22,8 +22,8 @@ const ACCEPT_MAP = {
   all:      "image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };
 
-/** Compress image in-browser before base64 encoding. Target ~800px wide, quality 0.75. */
-async function compressImage(file: File, maxWidth = 800, quality = 0.75): Promise<string> {
+/** Compress image in-browser before base64 encoding. Target ~800px wide, WebP quality 0.7 (JPEG fallback). */
+async function compressImage(file: File, maxWidth = 800, quality = 0.7): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -35,12 +35,18 @@ async function compressImage(file: File, maxWidth = 800, quality = 0.75): Promis
       const ctx = canvas.getContext("2d")!;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", quality));
+      // Browsers that cannot encode WebP silently return PNG — detect and fall back to JPEG.
+      let out = canvas.toDataURL("image/webp", quality);
+      if (!out.startsWith("data:image/webp")) {
+        out = canvas.toDataURL("image/jpeg", quality);
+      }
+      resolve(out);
     };
     img.onerror = reject;
     img.src = url;
   });
 }
+
 
 /** Convert any file to a data-URL via FileReader. */
 function fileToDataUrl(file: File): Promise<string> {
