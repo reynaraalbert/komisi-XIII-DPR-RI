@@ -189,3 +189,128 @@ html:not(.dark) .batik-bg {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ==========================================================================
+   Motion System (MotionProvider)
+   ========================================================================== */
+
+/* The top scroll progress bar */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #D4AF37, #F5C518);
+  transform-origin: 0% 50%;
+  transform: scaleX(0);
+  z-index: 9999;
+  pointer-events: none;
+}
+html.dark .scroll-progress {
+  background: linear-gradient(90deg, #D4AF37, #FFE885);
+}
+
+/* Hide elements before they scroll into view.
+   Only applies if the page isn't in motion-boot and IO is supported. */
+html:not(.motion-boot) .rv {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* 
+   Animation Types 
+*/
+
+/* 1. Headings (slide up slightly) */
+@keyframes rv-head-in {
+  0% { opacity: 0; transform: translateY(16px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.rv-head.rv-in {
+  animation: rv-head-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: var(--rv-delay, 0ms);
+}
+
+/* 2. Text (fade up subtly) */
+@keyframes rv-text-in {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.rv-text.rv-in {
+  animation: rv-text-in 0.6s ease-out forwards;
+  animation-delay: var(--rv-delay, 0ms);
+}
+
+/* 3. Cards & Media (scale up gently) */
+@keyframes rv-card-in {
+  0% { opacity: 0; transform: scale(0.96) translateY(12px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.rv-card.rv-in, .rv-media.rv-in {
+  animation: rv-card-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--rv-delay, 0ms);
+}
+
+/* Cards swiped in horizontally */
+@keyframes rv-x-in {
+  0% { opacity: 0; transform: translateX(24px) scale(0.98); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+.rv-card.rv-x.rv-in, .rv-media.rv-x.rv-in {
+  animation: rv-x-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: var(--rv-delay, 0ms);
+}
+
+/* 4. Icons & Buttons (pop in) */
+@keyframes rv-pop-in {
+  0% { opacity: 0; transform: scale(0.85); }
+  50% { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.rv-icon.rv-in, .rv-btn.rv-in {
+  animation: rv-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: var(--rv-delay, 0ms);
+}
+
+/* 5. Form Fields & Table Rows (slide in from left slightly) */
+@keyframes rv-row-in {
+  0% { opacity: 0; transform: translateX(-12px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.rv-field.rv-in, .rv-row.rv-in {
+  animation: rv-row-in 0.5s ease-out forwards;
+  animation-delay: var(--rv-delay, 0ms);
+}
+
+/* 6. Lines / Dividers (expand horizontally) */
+@keyframes rv-line-in {
+  0% { opacity: 0; transform: scaleX(0.2); }
+  100% { opacity: 1; transform: scaleX(1); }
+}
+.rv-line {
+  transform-origin: left center;
+}
+.rv-line.rv-in {
+  animation: rv-line-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: var(--rv-delay, 0ms);
+}
+
+/* 7. Chrome (Header/Sidebar - gentle fade down) */
+@keyframes rv-chrome-in {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.rv-chrome.rv-in {
+  animation: rv-chrome-in 0.8s ease-out forwards;
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  html:not(.motion-boot) .rv {
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+    will-change: auto;
+  }
+}

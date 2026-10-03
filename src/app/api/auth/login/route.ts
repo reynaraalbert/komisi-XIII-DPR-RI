@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  */
 const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
 const MAX_ATTEMPTS = 10;
-const LOCKOUT_MS   = 15 * 60 * 1000; // 15 minutes
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
 function getClientIp(req: NextRequest): string {
   return (

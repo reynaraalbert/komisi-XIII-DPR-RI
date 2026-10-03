@@ -1,5 +1,6 @@
 import sys
 import math
+# pyrefly: ignore [missing-import]
 from PIL import Image
 
 def remove_background(image_path: str, output_path: str, tolerance: int = 50) -> None:

@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CmsProvider } from "@/components/CmsProvider";
 import SiteChrome from "@/components/SiteChrome";
+import MotionProvider from "@/components/MotionProvider";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -40,8 +41,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="dark" suppressHydrationWarning>
+    <html lang="id" className="dark motion-boot" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col antialiased batik-bg transition-colors duration-300">
+        <MotionProvider />
         <ThemeProvider>
           <CmsProvider>
             <SiteChrome>{children}</SiteChrome>
