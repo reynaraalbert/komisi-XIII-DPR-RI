@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { NewsArticle } from "@/lib/data";
-import { X, Calendar, Clock, Share2, Download, Bookmark } from "lucide-react";
+import { X, Calendar, Clock, Share2, Download, Link2, MessageCircle, Twitter, Facebook } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NewsModalProps {
@@ -14,6 +14,7 @@ interface NewsModalProps {
 
 export default function NewsModal({ article, onClose }: NewsModalProps) {
   const [mounted, setMounted] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -87,18 +88,71 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
 
           {/* Actions */}
           <div className="pt-6 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 bg-slate-100 dark:bg-dpr-navy px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-dpr-emerald dark:hover:text-white transition-all">
+            <div className="flex items-center gap-3 relative">
+              <button 
+                onClick={() => setShowShare(!showShare)}
+                className="flex items-center gap-2 bg-slate-100 dark:bg-dpr-navy px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-dpr-emerald dark:hover:text-white transition-all">
                 <Share2 className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
                 <span>Bagikan Siaran Pers</span>
               </button>
-              <button className="flex items-center gap-2 bg-slate-100 dark:bg-dpr-navy px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-dpr-emerald dark:hover:text-white transition-all">
-                <Bookmark className="w-4 h-4 text-dpr-emerald dark:text-dpr-gold" />
-                <span>Simpan</span>
-              </button>
+
+              <AnimatePresence>
+                {showShare && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-full left-0 mb-2 w-48 bg-white dark:bg-dpr-navy-card border border-slate-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden z-50 flex flex-col"
+                  >
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        setShowShare(false);
+                        alert("Tautan disalin!");
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-left"
+                    >
+                      <Link2 className="w-4 h-4" />
+                      Salin Tautan
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const text = `Baca siaran pers: ${article?.title}\n${window.location.href}`;
+                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                        setShowShare(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-left"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      WhatsApp
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const text = `Baca siaran pers: ${article?.title}`;
+                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`, '_blank');
+                        setShowShare(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-left"
+                    >
+                      <Twitter className="w-4 h-4" />
+                      Twitter / X
+                    </button>
+                    <button 
+                      onClick={() => {
+                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+                        setShowShare(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-left"
+                    >
+                      <Facebook className="w-4 h-4" />
+                      Facebook
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {article.documentUrl && (
+            {article.documentUrl ? (
               <a
                 href={article.documentUrl}
                 download
@@ -107,6 +161,10 @@ export default function NewsModal({ article, onClose }: NewsModalProps) {
                 <Download className="w-4 h-4" />
                 <span>Unduh Draf Lampiran PDF</span>
               </a>
+            ) : (
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium italic">
+                tidak ada pdf yg di upload oleh penulis
+              </span>
             )}
           </div>
         </motion.div>
